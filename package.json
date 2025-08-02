@@ -1,0 +1,27 @@
+{
+  "name": "void-bot",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.ts",
+  "scripts": {
+    "deploy-commands": "tsc && node build/scripts/deployCommands",
+    "prestart": "tsc",
+    "start": "node build/index"
+  },
+  "dependencies": {
+    "@discordjs/opus": "^0.10.0",
+    "@discordjs/voice": "^0.18.0",
+    "@distube/ytdl-core": "^4.16.12",
+    "discord.js": "^14.20.0",
+    "ffmpeg-static": "^5.2.0",
+    "sodium-native": "^5.0.6",
+    "youtubei.js": "^15.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.7",
+    "typescript": "^5.9.2"
+  }
+}
