@@ -16,7 +16,7 @@ npm i
 You will then need to create a file called `config.json` in the folder.
 
 The file should look like this:
-```json
+```jsonc
 {
 	"token": "YOUR_TOKEN", // your bot's token
 	"clientId": "YOUR_CLIENT_ID", // your bot's client ID
