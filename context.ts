@@ -160,7 +160,7 @@ export class MessageContext<InGuild extends boolean = boolean> extends CommandCo
     }
 
     public constructor(message: OmitPartialGroupDMChannel<Message<InGuild>>, prefix: string) {
-        const [name, content] = split(message.content, / +/g, 2);
+        const [name, content] = split(message.content, /\s+/g, 2);
         super({
             client: message.client,
             commandName: name?.substring(prefix.length) ?? "",
@@ -178,7 +178,7 @@ export class MessageContext<InGuild extends boolean = boolean> extends CommandCo
      * @param limit The maximum number of arguments.
      */
     public getArguments(limit?: number): string[] {
-        return split(this.content, /\w+/g, limit);
+        return split(this.content, /\s+/g, limit);
     }
     public async reply(options: string | MessagePayloadOption): Promise<Message<InGuild>> {
         const payload = this.resolveMessagePayload(options);
