@@ -334,6 +334,25 @@ export function resolveYouTubeChannelId(input: string): string | null {
     const url = resolveURL(input);
     return url ? extractChannelId(url) : null;
 }
+const CHANNEL_ID_REGEXP = /<meta\s+itemprop="identifier"\s+content="([^"]+)">/;
+export async function getYouTubeChannelId(input: string) {
+    const result = resolveYouTubeChannelId(input);
+    if (result?.startsWith('@')) {
+        const url = `https://www.youtube.com/${result}`;
+        const res = await fetch(url);
+        if (res.ok) {
+            const html = await res.text();
+            const match = CHANNEL_ID_REGEXP.exec(html);
+            if (match) {
+                return match[1];
+            }
+        }
+        return null;
+    } else {
+        return result;
+    }
+
+}
 export function videoURL(videoId: string, short?: boolean) {
     if (short) {
         return `https://youtu.be/${encodeURIComponent(videoId)}`;

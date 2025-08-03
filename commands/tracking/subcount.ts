@@ -1,15 +1,10 @@
 import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from "discord.js";
 import { Command } from "..";
 import { CommandContext, InteractionContext, MessageContext } from "../../context";
-import { resolveYouTubeChannelId } from "../../utils";
+import { getYouTubeChannelId } from "../../utils";
 
 export async function subscriberCount(ctx: CommandContext<true>, input: string) {
-    let channelId = resolveYouTubeChannelId(input);
-    if (channelId?.startsWith('@')) {
-        // TODO: Resolve channel ID from @ identifier
-        await ctx.reply('That type of channel link is not currently supported.');
-        return;
-    }
+    const channelId = await getYouTubeChannelId(input);
     if (channelId) {
         const { trackers } = ctx;
         try {
