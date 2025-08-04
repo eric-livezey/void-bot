@@ -746,7 +746,6 @@ function downloadAudio(videoId: string, path: string) {
                 '-f', 'bestaudio',
                 '-o', path,
                 '--quiet',
-                '--no-download',
                 videoId.startsWith('-') ? videoURL(videoId) : videoId
             ];
 

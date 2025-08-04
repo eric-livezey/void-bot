@@ -1,5 +1,5 @@
 import { EmbedBuilder, SlashCommandBuilder } from "discord.js";
-import { Client, Command } from "..";
+import { Command } from "..";
 import { CommandContext } from "../../context";
 
 const embed = new EmbedBuilder().addFields(
@@ -23,6 +23,7 @@ const embed = new EmbedBuilder().addFields(
     { name: "volume [percentage]", value: "Sets the volume to the specified percentage." },
     { name: "viewcount [url]", value: "Creates a channel which will track the views for the YouTube video referenced by [url]." },
     { name: "subcount [url]", value: "Creates a channel which will track the subscribers for the YouTube channel referenced by [url]." },
+    { name: "evaluate|eval [expression]", value: 'Evaluates a methematic expression.' },
     { name: "help|h", value: "Displays this message." },
 ).toJSON();
 
@@ -34,7 +35,7 @@ export default {
     interaction: {
         data: new SlashCommandBuilder()
             .setName('help')
-            .setDescription('Displays help message.'),
+            .setDescription('Displays a help message.'),
         execute: help,
     },
     message: [

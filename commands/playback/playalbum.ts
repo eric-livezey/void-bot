@@ -52,7 +52,7 @@ export default {
                 const [query] = ctx.getArguments(1);
 
                 if (query == null) {
-                    await ctx.reply('You must provide a search query.');
+                    await ctx.reply('`query` must be provided.');
                     return;
                 }
 
