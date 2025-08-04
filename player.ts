@@ -110,11 +110,14 @@ export class Track<T = unknown> {
             if (!res.body) {
                 throw new Error(`Request to ${url} did not return a response body.`);
             }
-            const stream = Readable.fromWeb(res.body as import('stream/web').ReadableStream<any>);
+            if (!res.ok) {
+                throw new Error(`Request to ${url} responded with ${res.status} ${res.statusText}`)
+            }
+            const stream = Readable.fromWeb(res.body as ReadableStream);
             return createAudioResource(stream, { inlineVolume: true })
         };
         if (title == null)
-            title = url.pathname.substring(url.pathname.lastIndexOf('/') + 1) ?? 'Unknown Title';
+            title = url.pathname.substring(url.pathname.lastIndexOf('/') + 1) || 'Unknown Title';
         if (details == null)
             details = {};
         if (details.url == null)
@@ -721,7 +724,7 @@ function createYtdlVideoInfoPrepare(info: videoInfo, download = SHOULD_DOWNLOAD)
 }
 
 // YT-DLP
-// NOTE: ytdl-core is significantly
+// NOTE: ytdl-core is significantly faster (likely at least partly due to requesting info early)
 
 function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
     if (download) {
