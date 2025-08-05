@@ -153,7 +153,7 @@ export class Track<T = unknown> {
         return Track.fromVideoInfo(info);
     }
     /**
-     * Creates a track fomr a YouTube video searhc result.
+     * Creates a track fomr a YouTube video search result.
      * 
      * @param result A YouTube video search result.
      */
@@ -192,6 +192,8 @@ export class Track<T = unknown> {
     }
     /**
      * Creates a track from an album item.
+     * 
+     * **NOTE**: This may have have different metadata than it's YouTube video equivalent.
      *
      * @param item An album item.
      */
