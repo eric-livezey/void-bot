@@ -48,7 +48,7 @@ export default {
     },
     message: [
         {
-            aliases: ['nowplaying', 'np'],
+            aliases: ['info', 'i'],
             requiredPermissions: permissions,
             isDmRestricted: true,
             async execute(ctx: MessageContext<true>) {
