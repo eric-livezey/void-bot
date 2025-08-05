@@ -6,7 +6,12 @@ import { CommandContext, InteractionContext, MessageContext } from '../../contex
 export async function execute(ctx: CommandContext, expression: string) {
     try {
         const result = evaluate(expression);
-        await ctx.reply(result.toLocaleString());
+        console.log(typeof result);
+        if (typeof result !== 'function') {
+            await ctx.reply(result.toLocaleString());
+        } else {
+            await ctx.reply('Cannot evaluate custom functions.');
+        }
     } catch (error) {
         await ctx.reply((error as Error).message);
     }
