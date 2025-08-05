@@ -165,7 +165,7 @@ export async function play(ctx: CommandContext<true>, { input, attachment }: { i
                 const search = await innertube.search(input, { type: 'video' });
                 const video = search.results.firstOfType(YTNodes.Video);
                 if (video) {
-                    await playTrack(ctx, await Track.fromVideoId(video.video_id));
+                    await playTrack(ctx, Track.fromSearchResult(video));
                 } else {
                     await ctx.reply('There were no valid results for your query.');
                 }

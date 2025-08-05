@@ -7,7 +7,7 @@ import { createWriteStream, existsSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
-import { MusicResponsiveListItem, PlaylistVideo } from 'youtubei.js/dist/src/parser/nodes';
+import { MusicResponsiveListItem, PlaylistVideo, Video } from 'youtubei.js/dist/src/parser/nodes';
 import { bestThumbnail, channelURL, Duration, videoURL } from './utils';
 
 const AUDIO_CACHE_DIR = path.join('cache', 'audio');
@@ -132,11 +132,10 @@ export class Track<T = unknown> {
     public static fromVideoInfo(info: ytdl.videoInfo) {
         const { videoDetails } = info;
         const prepare = createYtdlVideoInfoPrepare(info);
-        const format = ytdl.chooseFormat(info.formats, DefaultFormatOptions);
         const details = {
             url: videoURL(videoDetails.videoId, true),
             thumbnail: bestThumbnail(videoDetails.thumbnails).url,
-            duration: format.approxDurationMs ? parseInt(format.approxDurationMs) : undefined,
+            duration: parseInt(info.videoDetails.lengthSeconds) * 1000,
             author: {
                 name: videoDetails.author.name,
                 url: channelURL(videoDetails.author.id),
@@ -150,8 +149,27 @@ export class Track<T = unknown> {
      * @param videoId A YouTube video ID.
      */
     public static async fromVideoId(videoId: string) {
-        const info = await ytdl.getInfo(videoId);
+        const info = await (SHOULD_DOWNLOAD && existsSync(path.join(AUDIO_CACHE_DIR, `${videoId}.webm`)) ? ytdl.getBasicInfo(videoId) : ytdl.getInfo(videoId));
         return Track.fromVideoInfo(info);
+    }
+    /**
+     * Creates a track fomr a YouTube video searhc result.
+     * 
+     * @param result A YouTube video search result.
+     */
+    public static fromSearchResult(result: Video) {
+        const videoId = result.video_id;
+        const prepare = createYtdlPrepare(videoId);
+        const details = {
+            url: videoURL(videoId, true),
+            thumbnail: bestThumbnail(result.thumbnails).url,
+            duration: result.duration.seconds * 1000,
+            author: {
+                name: result.author.name,
+                url: result.author.url,
+            },
+        };
+        return new Track(prepare, result.title.toString(), details);
     }
     /**
      * Creates a track from a playlist item.
@@ -724,7 +742,7 @@ function createYtdlVideoInfoPrepare(info: videoInfo, download = SHOULD_DOWNLOAD)
 }
 
 // YT-DLP
-// NOTE: ytdl-core is significantly faster (likely at least partly due to requesting info early)
+// NOTE: ytdl-core is significantly faster
 
 function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
     if (download) {
