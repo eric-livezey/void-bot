@@ -1,6 +1,6 @@
-import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandNumberOption } from "discord.js";
-import { Command } from "..";
-import { CommandContext, InteractionContext, MessageContext } from "../../context";
+import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandNumberOption } from 'discord.js';
+import { Command } from '..';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
 
 export async function volume(ctx: CommandContext<true>, percentage: number) {
     const player = ctx.player;

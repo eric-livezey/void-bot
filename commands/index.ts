@@ -1,5 +1,5 @@
-import { Client as BaseClient, ClientOptions, Collection, PermissionsBitField, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandsOnlyBuilder } from "discord.js";
-import { InteractionContext, MessageContext } from "../context";
+import { Client as BaseClient, ClientOptions, Collection, PermissionsBitField, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandsOnlyBuilder } from 'discord.js';
+import { InteractionContext, MessageContext } from '../context';
 
 export interface Command {
     interaction?: InteractionCommand;

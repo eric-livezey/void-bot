@@ -1,7 +1,7 @@
-import { InteractionContextType, PermissionsBitField, SlashCommandAttachmentOption, SlashCommandBuilder } from "discord.js";
-import { Command } from "..";
-import { InteractionContext } from "../../context";
-import { play } from "./play";
+import { InteractionContextType, PermissionsBitField, SlashCommandAttachmentOption, SlashCommandBuilder } from 'discord.js';
+import { Command } from '..';
+import { InteractionContext } from '../../context';
+import { play } from './play';
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,

@@ -1,8 +1,8 @@
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType, MessagePayloadOption, SlashCommandBuilder } from "discord.js";
-import { Command } from "..";
-import { CommandContext } from "../../context";
-import { Player } from "../../player";
-import { canViewPlayback } from "./play";
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, InteractionContextType, MessagePayloadOption, SlashCommandBuilder } from 'discord.js';
+import { Command } from '..';
+import { CommandContext } from '../../context';
+import { Player } from '../../player';
+import { canViewPlayback } from './play';
 
 // NOTE: Maybe use components v2 instead of embed?
 export function generateQueueMessage(player: Player, page: number): MessagePayloadOption {
@@ -18,7 +18,7 @@ export function generateQueueMessage(player: Player, page: number): MessagePaylo
     if (page > 0) {
         arb.addComponents(
             new ButtonBuilder()
-                .setEmoji("\u2b05") // Left Arrow
+                .setEmoji('\u2b05') // Left Arrow
                 .setStyle(ButtonStyle.Secondary)
                 .setCustomId(`QUEUE_PAGE:${page - 1}`)
         );
@@ -26,16 +26,16 @@ export function generateQueueMessage(player: Player, page: number): MessagePaylo
     if (page < n) {
         arb.addComponents(
             new ButtonBuilder()
-                .setEmoji("\u27a1") // Right Arrow
+                .setEmoji('\u27a1') // Right Arrow
                 .setStyle(ButtonStyle.Secondary)
                 .setCustomId(`QUEUE_PAGE:${page + 1}`)
         );
     }
     let content;
     if (embed === null) {
-        content = "Nothing is playing."
+        content = 'Nothing is playing.'
     } else if (player.queue.length === 0) {
-        content = "**Now Playing**";
+        content = '**Now Playing**';
     }
     const embeds = [];
     if (embed !== null) {

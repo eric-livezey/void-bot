@@ -9,41 +9,42 @@ const guildCommands = [];
 const foldersPath = path.join(__dirname, '../commands');
 const commandFolders = fs.readdirSync(foldersPath);
 
-for (const folder of commandFolders) {
-    const commandsPath = path.join(foldersPath, folder);
-    const commandsStat = fs.statSync(commandsPath);
-    if (commandsStat.isDirectory()) {
-        const commandFiles = fs.readdirSync(commandsPath);
-        for (const file of commandFiles) {
-            const filePath = path.join(commandsPath, file);
-            const fileStat = fs.statSync(filePath);
-            if (fileStat.isFile() && path.extname(file) === '.js') {
+(async () => {
+    for (const folder of commandFolders) {
+        const commandsPath = path.join(foldersPath, folder);
+        const commandsStat = fs.statSync(commandsPath);
+        if (commandsStat.isDirectory()) {
+            const commandFiles = fs.readdirSync(commandsPath);
+            for (const file of commandFiles) {
                 const filePath = path.join(commandsPath, file);
-                const command = require(filePath).default as Command | undefined;
-                if (command != null) {
-                    if (command.interaction) {
-                        const interaction = command.interaction;
-                        if ('data' in interaction && 'execute' in interaction) {
-                            if (interaction.isGuildCommand) {
-                                guildCommands.push(interaction.data.toJSON());
+                const fileStat = fs.statSync(filePath);
+                if (fileStat.isFile() && path.extname(file) === '.js') {
+                    const filePath = path.join(commandsPath, file);
+                    const module = await import(filePath);
+                    const command = module.default as Command | undefined;
+                    if (command != null) {
+                        if (command.interaction) {
+                            const interaction = command.interaction;
+                            if ('data' in interaction && 'execute' in interaction) {
+                                if (interaction.isGuildCommand) {
+                                    guildCommands.push(interaction.data.toJSON());
+                                } else {
+                                    commands.push(interaction.data.toJSON());
+                                }
                             } else {
-                                commands.push(interaction.data.toJSON());
+                                console.log(`[WARNING] The command at ${filePath} is missing a required 'interaction.data' or 'interaction.execute' property.`);
                             }
-                        } else {
-                            console.log(`[WARNING] The command at ${filePath} is missing a required 'interaction.data' or 'interaction.execute' property.`);
                         }
+                    } else {
+                        console.warn(`[WARNING] The command at ${filePath} does not have a default export.`);
                     }
-                } else {
-                    console.warn(`[WARNING] The command at ${filePath} does not have a default export.`);
                 }
             }
         }
     }
-}
 
-const rest = new REST().setToken(token);
+    const rest = new REST().setToken(token);
 
-(async () => {
     try {
         console.log(`Started refreshing ${commands.length + guildCommands.length} application (/) commands.`);
 

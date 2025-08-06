@@ -1,7 +1,7 @@
-import { getVoiceConnection } from "@discordjs/voice";
-import { channelMention, InteractionContextType, PermissionsBitField, SlashCommandBuilder } from "discord.js";
-import { Command } from "..";
-import { CommandContext } from "../../context";
+import { getVoiceConnection } from '@discordjs/voice';
+import { channelMention, InteractionContextType, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
+import { Command } from '..';
+import { CommandContext } from '../../context';
 
 export async function leave(ctx: CommandContext<true>) {
     if (ctx.isInteraction()) {

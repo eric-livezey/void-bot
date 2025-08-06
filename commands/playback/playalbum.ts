@@ -1,8 +1,8 @@
-import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from "discord.js";
-import { Command } from "..";
-import { CommandContext, InteractionContext, MessageContext } from "../../context";
-import { getInnertubeInstance } from "../../innertube";
-import { connectToSpeak, playPlaylist } from "./play";
+import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
+import { Command } from '..';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { getInnertubeInstance } from '../../innertube';
+import { connectToSpeak, playPlaylist } from './play';
 
 export async function playAlbum(ctx: CommandContext<true>, query: string) {
     if (!await connectToSpeak(ctx)) {
@@ -17,7 +17,7 @@ export async function playAlbum(ctx: CommandContext<true>, query: string) {
         const playlist = await innertube.getPlaylist(new URL(album.url!).searchParams.get('list')!);
         await playPlaylist(ctx, playlist);
     } else {
-        await ctx.reply("There were no valid results for your query.");
+        await ctx.reply('There were no valid results for your query.');
     }
 }
 

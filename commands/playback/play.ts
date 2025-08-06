@@ -1,13 +1,13 @@
-import { Attachment, channelMention, EmbedBuilder, InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from "discord.js";
-import { YTNodes } from "youtubei.js";
-import { Playlist } from "youtubei.js/dist/src/parser/youtube";
-import { Command } from "..";
-import { ownerId } from "../../config.json";
-import { CommandContext, InteractionContext, MessageContext } from "../../context";
-import { getInnertubeInstance } from "../../innertube";
-import { Track } from "../../player";
-import { bestThumbnail, channelURL, createVoiceConnection, extractPlaylistId, extractVideoId, resolveURL } from "../../utils";
-import { resume } from "./resume";
+import { Attachment, channelMention, EmbedBuilder, InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
+import { YTNodes } from 'youtubei.js';
+import { Playlist } from 'youtubei.js/dist/src/parser/youtube';
+import { Command } from '..';
+import { ownerId } from '../../config.json';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { getInnertubeInstance } from '../../innertube';
+import { Track } from '../../player';
+import { bestThumbnail, channelURL, createVoiceConnection, extractPlaylistId, extractVideoId, resolveURL } from '../../utils';
+import { resume } from './resume';
 
 export async function canManagePlayback(ctx: CommandContext<true>) {
     const player = ctx.player;
@@ -96,13 +96,13 @@ export async function playPlaylist(ctx: CommandContext<true>, playlist: Playlist
 
     const { info } = playlist;
     const eb = new EmbedBuilder()
-        .setTitle(info.title ?? "Unknown")
+        .setTitle(info.title ?? 'Unknown')
         .setURL(playlist.endpoint!.toURL()!)
         .setThumbnail(bestThumbnail(info.thumbnails).url);
     const { author } = info;
     if (author) eb.setAuthor({ name: author.name, url: channelURL(author.id) });
     await ctx.replyOrFollowUp({
-        content: "**Added " + totalAdded + " tracks to the queue**",
+        content: '**Added ' + totalAdded + ' tracks to the queue**',
         embeds: [eb.toJSON()]
     });
 }
@@ -117,7 +117,7 @@ export async function playTrack(ctx: CommandContext<true>, track: Track) {
     } else {
         await ctx.reply({
             content: '**Added to the Queue**',
-            embeds: [track.toEmbed({ name: "Position", value: position.toLocaleString(), inline: true })],
+            embeds: [track.toEmbed({ name: 'Position', value: position.toLocaleString(), inline: true })],
         });
     }
 }

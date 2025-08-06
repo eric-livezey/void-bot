@@ -1,7 +1,7 @@
-import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from "discord.js";
-import { Command } from "..";
-import { CommandContext, InteractionContext, MessageContext } from "../../context";
-import { resolveVideoId } from "../../utils";
+import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
+import { Command } from '..';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { resolveVideoId } from '../../utils';
 
 export async function viewCount(ctx: CommandContext<true>, input: string) {
     const videoId = resolveVideoId(input);

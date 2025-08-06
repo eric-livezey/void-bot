@@ -1,4 +1,4 @@
-import Innertube from "youtubei.js";
+import Innertube from 'youtubei.js';
 
 const instance = Innertube.create();
 

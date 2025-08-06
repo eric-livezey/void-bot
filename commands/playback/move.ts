@@ -1,13 +1,13 @@
-import { InteractionContextType, MessageFlags, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from "discord.js";
-import { Command } from "..";
-import { CommandContext, InteractionContext, MessageContext } from "../../context";
-import { canManagePlayback } from "./play";
+import { InteractionContextType, MessageFlags, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from 'discord.js';
+import { Command } from '..';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { canManagePlayback } from './play';
 
 export async function move(ctx: CommandContext<true>, source: number, destination: number) {
     if (await canManagePlayback(ctx)) {
         const { queue } = ctx.player;
         if (queue.length === 0) {
-            return await ctx.reply("The queue is empty.");
+            return await ctx.reply('The queue is empty.');
         }
         if (source < 1 || source > queue.length) {
             await ctx.reply(`${source} is not a valid index in the queue.`);
@@ -18,7 +18,7 @@ export async function move(ctx: CommandContext<true>, source: number, destinatio
             return;
         }
         if (source === destination) {
-            await ctx.reply("Indices must not be equal.");
+            await ctx.reply('Indices must not be equal.');
             return;
         }
         const track = queue.get(source - 1);

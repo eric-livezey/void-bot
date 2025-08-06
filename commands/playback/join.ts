@@ -1,7 +1,7 @@
-import { channelMention, ChannelType, InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandChannelOption, VoiceBasedChannel } from "discord.js";
-import { Command } from "..";
-import { CommandContext, InteractionContext, MessageContext } from "../../context";
-import { createVoiceConnection, resolveChannelId } from "../../utils";
+import { channelMention, ChannelType, InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandChannelOption, VoiceBasedChannel } from 'discord.js';
+import { Command } from '..';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { createVoiceConnection, resolveChannelId } from '../../utils';
 
 export async function join(ctx: CommandContext<true>, channel?: VoiceBasedChannel) {
     if (channel && !ctx.member.permissionsIn(channel).has(permissions)) {

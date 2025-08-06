@@ -1,7 +1,7 @@
-import { ChannelType, MessageCreateOptions, PermissionsBitField, SendableChannels, SlashCommandAttachmentOption, SlashCommandBuilder, SlashCommandChannelOption, SlashCommandStringOption } from "discord.js";
-import { Command } from "..";
-import { CommandContext, InteractionContext, MessageContext } from "../../context";
-import { resolveChannelId } from "../../utils";
+import { ChannelType, MessageCreateOptions, PermissionsBitField, SendableChannels, SlashCommandAttachmentOption, SlashCommandBuilder, SlashCommandChannelOption, SlashCommandStringOption } from 'discord.js';
+import { Command } from '..';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { resolveChannelId } from '../../utils';
 
 const CHANNEL_TYPES = [
     ChannelType.GuildText,

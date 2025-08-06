@@ -1,6 +1,7 @@
-import { joinVoiceChannel } from "@discordjs/voice";
-import { Snowflake, VoiceBasedChannel } from "discord.js";
-import { Thumbnail } from "youtubei.js/dist/src/parser/misc";
+import { joinVoiceChannel } from '@discordjs/voice';
+import { Snowflake, VoiceBasedChannel } from 'discord.js';
+import { Thumbnail } from 'youtubei.js/dist/src/parser/misc';
+import { getInnertubeInstance } from './innertube';
 
 export class Duration {
     private milliseconds: number;
@@ -263,6 +264,8 @@ export function resolveURL(input: string): URL | null {
 const YOUTUBE_PROTOCOLS = new Set(['http:', 'https:']);
 const YOUTUBE_HOSTNAMES = new Set(['www.youtube.com', 'youtube.com', 'm.youtube.com', 'music.youtube.com']);
 const YOUTUBE_SHORT_URL_HOSTNAME = 'youtu.be';
+const VIDEO_ID_REGEXP = /^[\w-]{11}$/;
+const CHANNEL_ID_REGEXP = /^[\w-]{24}$/;
 /**
  * Returns whether a URL has a valid domain and protocol for a YouTube URL.
  * 
@@ -320,37 +323,56 @@ export function extractChannelId(url: URL): string | null {
         if (a === 'channel') {
             return b ?? null;
         }
-        if (a?.startsWith('@')) {
-            return a;
+    }
+    return null;
+}
+/**
+ * Resolves a Video ID from an input.
+ * 
+ * @param input 
+ * @returns 
+ */
+export function resolveVideoId(input: string): string | null {
+    const url = resolveURL(input);
+    if (url) {
+        const videoId = extractVideoId(url);
+        if (videoId != null && VIDEO_ID_REGEXP.test(videoId)) {
+            return videoId;
         }
     }
     return null;
 }
-export function resolveVideoId(input: string): string | null {
-    const url = resolveURL(input);
-    return url ? extractVideoId(url) : null;
-}
+/**
+ * 
+ * @param input 
+ * @returns 
+ */
 export function resolveYouTubeChannelId(input: string): string | null {
     const url = resolveURL(input);
-    return url ? extractChannelId(url) : null;
+    if (url) {
+        const channelId = extractChannelId(url);
+        if (channelId != null && CHANNEL_ID_REGEXP.test(channelId)) {
+            return channelId;
+        }
+    }
+    return null;
 }
-const CHANNEL_ID_REGEXP = /<meta\s+itemprop="identifier"\s+content="([^"]+)">/;
 export async function getYouTubeChannelId(input: string) {
-    const result = resolveYouTubeChannelId(input);
-    if (result?.startsWith('@')) {
-        const url = `https://www.youtube.com/${result}`;
-        const res = await fetch(url);
-        if (res.ok) {
-            const html = await res.text();
-            const match = CHANNEL_ID_REGEXP.exec(html);
-            if (match) {
-                return match[1];
+    const url = resolveURL(input);
+    let channelId = null;
+    if (url && isYouTubeURL(url)) {
+        const [_, a, b] = url.pathname.split('/');
+        if (a === 'channel') {
+            channelId = b ?? null;
+        } else {
+            const innertube = await getInnertubeInstance();
+            const endpoint = await innertube.resolveURL(url.toString()).catch(() => null);
+            if (endpoint?.metadata.page_type === 'WEB_PAGE_TYPE_CHANNEL') {
+                channelId = endpoint.payload.browseId ?? null;
             }
         }
-        return null;
-    } else {
-        return result;
     }
+    return channelId != null && CHANNEL_ID_REGEXP.test(channelId) ? channelId : null;
 
 }
 export function videoURL(videoId: string, short?: boolean) {

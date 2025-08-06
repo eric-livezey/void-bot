@@ -1,7 +1,7 @@
-import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from "discord.js";
-import { Command } from "..";
-import { CommandContext, InteractionContext, MessageContext } from "../../context";
-import { getYouTubeChannelId } from "../../utils";
+import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
+import { Command } from '..';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { getYouTubeChannelId } from '../../utils';
 
 export async function subscriberCount(ctx: CommandContext<true>, input: string) {
     const channelId = await getYouTubeChannelId(input);

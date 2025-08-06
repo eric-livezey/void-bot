@@ -1,9 +1,8 @@
-import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from "discord.js";
-import { Command } from "..";
-import { CommandContext, InteractionContext, MessageContext } from "../../context";
-import { Player } from "../../player";
-import { nowPlaying } from "./nowplaying";
-import { canViewPlayback } from "./play";
+import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from 'discord.js';
+import { Command } from '..';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { nowPlaying } from './nowplaying';
+import { canViewPlayback } from './play';
 
 export async function info(ctx: CommandContext<true>, index: number) {
     if (index === 0) {

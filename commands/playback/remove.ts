@@ -1,19 +1,19 @@
-import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from "discord.js";
-import { Command } from "..";
-import { CommandContext, InteractionContext, MessageContext } from "../../context";
-import { canManagePlayback } from "./play";
+import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from 'discord.js';
+import { Command } from '..';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { canManagePlayback } from './play';
 
 export async function remove(ctx: CommandContext<true>, index: number) {
     if (await canManagePlayback(ctx)) {
         const { queue } = ctx.player;
         if (queue.length === 0) {
-            return await ctx.reply("The queue is empty.");
+            return await ctx.reply('The queue is empty.');
         }
         if (index < 1 || index > queue.length) {
             return await ctx.reply(`${index} is not a valid index in the queue.`,);
         }
         const track = queue.remove(index - 1);
-        return await ctx.reply({ content: "**Removed**", embeds: [track.toEmbed()] });
+        return await ctx.reply({ content: '**Removed**', embeds: [track.toEmbed()] });
     }
 }
 

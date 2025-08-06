@@ -1,7 +1,6 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 import ytdl, { chooseFormatOptions, videoInfo } from '@distube/ytdl-core';
 import { APIEmbedField, EmbedBuilder, RestOrArray, Snowflake } from 'discord.js';
-import { exec, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { createWriteStream, existsSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
@@ -599,7 +598,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
                 eb.setDescription(description);
             }
         }
-        for (var i = page * 25; i < this.queue.length && i < (page + 1) * 25; i++) {
+        for (let i = page * 25; i < this.queue.length && i < (page + 1) * 25; i++) {
             const track = this.queue.get(i);
             eb.addFields({
                 name: ' ',
@@ -667,7 +666,7 @@ function downloadFromStream(stream: Readable, path: string, id: string) {
             const start = Date.now();
             const writeStream = createWriteStream(path);
             // cleanly reject errors and remove the file
-            function error(reason: any) {
+            function error(...args: Parameters<typeof reject>) {
                 try {
                     writeStream.close();
                     rmSync(path);
@@ -676,10 +675,10 @@ function downloadFromStream(stream: Readable, path: string, id: string) {
                     reject(e);
                 }
                 delete downloads[id];
-                reject(reason);
+                reject(...args);
             }
             // timeout
-            let timeout = setTimeout(() => {
+            const timeout = setTimeout(() => {
                 if (writeStream.bytesWritten === 0)
                     error(`error on download ${id}: timed out after 10 seconds`);
             }, 10000);
@@ -741,65 +740,4 @@ function createYtdlPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
 
 function createYtdlVideoInfoPrepare(info: videoInfo, download = SHOULD_DOWNLOAD) {
     return createReadablePrepare(info.videoDetails.videoId, () => ytdl.downloadFromInfo(info, DefaultFormatOptions), download);
-}
-
-// YT-DLP
-// NOTE: ytdl-core is significantly faster
-
-function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
-    if (download) {
-        return createDownloadPrepare(videoId, (path: string) => downloadAudio(videoId, path));
-    } else {
-        return createStreamPrepare(() => getStreamingURL(videoId).then(url => fetch(url)).then(res => Readable.fromWeb(res.body! as ReadableStream)));
-    }
-}
-
-function downloadAudio(videoId: string, path: string) {
-    if (videoId in downloads) {
-        // return in progress downloads
-        return downloads[videoId];
-    } else {
-        // create new promise to resolve downloaded audio
-        return downloads[videoId] = new Promise<string>((resolve, reject) => {
-            // arguments
-            const args = [
-                '-f', 'bestaudio',
-                '-o', path,
-                '--quiet',
-                videoId.startsWith('-') ? videoURL(videoId) : videoId
-            ];
-
-            // spawn yt-dlp
-            const proc = spawn('yt-dlp', args);
-
-            // log error messages
-            proc.stderr.on('data', data => {
-                console.error(data.toString());
-            });
-
-            // resolve or reject on closes
-            proc.on('close', code => {
-                delete downloads[videoId];
-                if (code === 0) {
-                    resolve(path);
-                } else {
-                    rmSync(path);
-                    reject(`yt-dlp exited with code ${code}.`);
-                }
-            });
-        });
-    }
-}
-
-function getStreamingURL(videoId: string) {
-    // resolve the streaming URL from yt-dlp
-    return new Promise<string>((resolve, reject) => {
-        exec(`yt-dlp -f bestaudio --get-url ${videoId}`, (error, stdout) => {
-            if (error) {
-                reject(error);
-            } else {
-                resolve(stdout.trim())
-            }
-        });
-    });
 }

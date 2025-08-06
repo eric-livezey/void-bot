@@ -1,7 +1,7 @@
-import { MessageCreateOptions, PermissionsBitField, SlashCommandAttachmentOption, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption, User } from "discord.js";
-import { Command } from "..";
-import { CommandContext, InteractionContext, MessageContext } from "../../context";
-import { resolveUserId } from "../../utils";
+import { MessageCreateOptions, PermissionsBitField, SlashCommandAttachmentOption, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption, User } from 'discord.js';
+import { Command } from '..';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { resolveUserId } from '../../utils';
 
 export async function dm(ctx: CommandContext, user: User, options: MessageCreateOptions) {
     try {

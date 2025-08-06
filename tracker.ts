@@ -1,10 +1,10 @@
-import { _Nullable, CategoryChannel, CategoryChannelResolvable, ChannelType, Client, Collection, Events, Guild, PermissionsBitField, Snowflake, VoiceChannel } from 'discord.js';
+import { _Nullable, CategoryChannel, CategoryChannelResolvable, ChannelType, Client, Events, Guild, PermissionsBitField, Snowflake, VoiceChannel } from 'discord.js';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import Innertube from 'youtubei.js/agnostic';
-import { getInnertubeInstance } from './innertube';
-import { Channel } from 'youtubei.js/dist/src/parser/youtube';
 import { C4TabbedHeader, PageHeader } from 'youtubei.js/dist/src/parser/nodes';
+import { Channel } from 'youtubei.js/dist/src/parser/youtube';
+import { getInnertubeInstance } from './innertube';
 
 /**
  * Path to the tracker cache file.
@@ -86,7 +86,7 @@ type Trackers = {
 }
 
 function getTrackers(client: Client) {
-    const trackers = new Map<Snowflake, Map<ResourceType, Map<String, ResourceTracker>>>();
+    const trackers = new Map<Snowflake, Map<ResourceType, Map<string, ResourceTracker>>>();
     if (existsSync(FILE_PATH)) {
         const buffer = readFileSync(FILE_PATH);
         const data = JSON.parse(buffer.toString('utf8')) as JSONTracker[];
@@ -323,7 +323,7 @@ const CHANNEL_MAP = new Map<Snowflake, TrackerIdentifier>();
 export class TrackerManager {
     private static readonly cache: Map<Client, TrackerManager> = new Map();
     private readonly client: Client;
-    private readonly trackers: Map<Snowflake, Map<ResourceType, Map<String, ResourceTracker>>>;
+    private readonly trackers: Map<Snowflake, Map<ResourceType, Map<string, ResourceTracker>>>;
     private timeout: NodeJS.Timeout | null;
     public get isRunning() {
         return this.timeout != null;
@@ -453,8 +453,8 @@ export class TrackerManager {
         return this.get(guildId, ResourceType.VIDEO, videoId);
     }
     public async addVideoTracker(guildId: string, videoId: string) {
-        let tracker: VideoTracker | null;
-        if (tracker = this.getVideoTracker(guildId, videoId)) {
+        let tracker = this.getVideoTracker(guildId, videoId);
+        if (tracker) {
             return tracker;
         }
         tracker = new VideoTracker(this.client, guildId, videoId);
@@ -472,8 +472,8 @@ export class TrackerManager {
         return this.get(guildId, ResourceType.CHANNEL, videoId);
     }
     public async addChannelTracker(guildId: string, videoId: string) {
-        let tracker: ChannelTracker | null;
-        if (tracker = this.getChannelTracker(guildId, videoId)) {
+        let tracker = this.getChannelTracker(guildId, videoId);
+        if (tracker) {
             return tracker;
         }
         tracker = new ChannelTracker(this.client, guildId, videoId);

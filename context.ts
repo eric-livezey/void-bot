@@ -1,6 +1,6 @@
-import { ChatInputCommandInteraction, Client, Guild, GuildMember, GuildTextBasedChannel, If, InteractionResponse, Message, MessageFlags, MessageFlagsBitField, MessageFlagsResolvable, MessagePayload, MessagePayloadOption, OmitPartialGroupDMChannel, PartialGroupDMChannel, Snowflake, TextBasedChannel, User } from "discord.js";
-import { Player } from "./player";
-import { TrackerManager } from "./tracker";
+import { ChatInputCommandInteraction, Client, Guild, GuildMember, GuildTextBasedChannel, If, InteractionResponse, Message, MessageFlags, MessageFlagsBitField, MessageFlagsResolvable, MessagePayload, MessagePayloadOption, OmitPartialGroupDMChannel, PartialGroupDMChannel, Snowflake, TextBasedChannel, User } from 'discord.js';
+import { Player } from './player';
+import { TrackerManager } from './tracker';
 
 
 function split(str: string, regex: RegExp, limit?: number): string[] {
@@ -119,15 +119,15 @@ export abstract class CommandContext<InGuild extends boolean = boolean> {
     /**
      * Reply to the command.
      */
-    public abstract reply(options: string | MessagePayloadOption, ephemeral?: boolean): Promise<any>;
+    public abstract reply(options: string | MessagePayloadOption, ephemeral?: boolean): Promise<unknown>;
     /**
      * Create a follow up reply to the command.
      */
-    public abstract followUp(options: string | MessagePayloadOption, ephemeral?: boolean): Promise<any>;
+    public abstract followUp(options: string | MessagePayloadOption, ephemeral?: boolean): Promise<unknown>;
     /**
      * Edit the existing reply to the command.
      */
-    public abstract editReply(options: string | MessagePayloadOption): Promise<any>;
+    public abstract editReply(options: string | MessagePayloadOption): Promise<unknown>;
     /**
      * Reply to the command, or create a follow up message if the command has already been replied to.
      */
@@ -163,13 +163,13 @@ export class MessageContext<InGuild extends boolean = boolean> extends CommandCo
         const [name, content] = split(message.content, /\s+/g, 2);
         super({
             client: message.client,
-            commandName: name?.substring(prefix.length) ?? "",
+            commandName: name?.substring(prefix.length) ?? '',
             user: message.author,
             channelId: message.channelId,
             guildId: message.guildId ?? undefined
         });
         this.message = message;
-        this.content = content ?? "";
+        this.content = content ?? '';
     }
 
     /**
