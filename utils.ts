@@ -261,6 +261,11 @@ export function resolveRoleId(input: string): Snowflake | null {
 export function resolveURL(input: string): URL | null {
     return URL.canParse(input) ? new URL(input) : null;
 }
+enum WebPageType {
+    Watch = 'WEB_PAGE_TYPE_WATCH',
+    Channel = 'WEB_PAGE_TYPE_CHANNEL',
+    Playlist = 'WEB_PAGE_TYPE_PLAYLIST',
+}
 const YOUTUBE_PROTOCOLS = new Set(['http:', 'https:']);
 const YOUTUBE_HOSTNAMES = new Set(['www.youtube.com', 'youtube.com', 'm.youtube.com', 'music.youtube.com']);
 const YOUTUBE_SHORT_URL_HOSTNAME = 'youtu.be';
@@ -284,7 +289,7 @@ export function isYouTubeURL(url: URL, allowShort = false): boolean {
  */
 export function extractVideoId(url: URL): string | null {
     if (isYouTubeURL(url, true)) {
-        const [_, a, b, c] = url.pathname.split('/');
+        const [, a, b, c] = url.pathname.split('/');
         if (c == null) {
             if (a === 'watch') {
                 return b == null ? url.searchParams.get('v') : b ?? null;
@@ -319,7 +324,7 @@ export function extractPlaylistId(url: URL): string | null {
  */
 export function extractChannelId(url: URL): string | null {
     if (isYouTubeURL(url)) {
-        const [_, a, b] = url.pathname.split('/');
+        const [, a, b] = url.pathname.split('/');
         if (a === 'channel') {
             return b ?? null;
         }
@@ -370,13 +375,13 @@ export async function getYouTubeChannelId(input: string) {
     const url = resolveURL(input);
     let channelId = null;
     if (url && isYouTubeURL(url)) {
-        const [_, a, b] = url.pathname.split('/');
+        const [, a, b] = url.pathname.split('/');
         if (a === 'channel') {
             channelId = b ?? null;
         } else {
             const innertube = await getInnertubeInstance();
             const endpoint = await innertube.resolveURL(url.toString()).catch(() => null);
-            if (endpoint?.metadata.page_type === 'WEB_PAGE_TYPE_CHANNEL') {
+            if (endpoint?.metadata.page_type === WebPageType.Channel) {
                 channelId = endpoint.payload.browseId ?? null;
             }
         }

@@ -6,11 +6,11 @@ import { ownerId } from '../../config.json';
 import { CommandContext, InteractionContext, MessageContext } from '../../context';
 import { getInnertubeInstance } from '../../innertube';
 import { Track } from '../../player';
-import { bestThumbnail, channelURL, createVoiceConnection, extractPlaylistId, extractVideoId, resolveURL } from '../../utils';
+import { bestThumbnail, channelURL, createVoiceConnection, extractPlaylistId, extractVideoId, playlistURL, resolveURL } from '../../utils';
 import { resume } from './resume';
 
 export async function canManagePlayback(ctx: CommandContext<true>) {
-    const player = ctx.player;
+    const { player } = ctx;
     if (player.isPlaying()) {
         if (ctx.isInteraction()) {
             await ctx.deferReply();
@@ -37,7 +37,7 @@ export async function canManagePlayback(ctx: CommandContext<true>) {
 }
 
 export async function canViewPlayback(ctx: CommandContext<true>) {
-    const player = ctx.player;
+    const { player } = ctx;
     if (player.isPlaying()) {
         return true;
     } else {
@@ -77,7 +77,7 @@ export async function connectToSpeak(ctx: CommandContext<true>) {
 }
 
 export async function playPlaylist(ctx: CommandContext<true>, playlist: Playlist) {
-    const player = ctx.player;
+    const { player } = ctx;
     let totalAdded = 0;
     do {
         for (const video of playlist.videos) {
@@ -86,7 +86,7 @@ export async function playPlaylist(ctx: CommandContext<true>, playlist: Playlist
                 const index = await player.enqueue(track);
                 // NOTE: Failed tracks are skipped if prepared during enqueue
                 if (index === 0) {
-                    await ctx.reply({ content: '**Now Playing**', embeds: [track.toEmbed()] });
+                    await ctx.reply({ content: '**Now Playing**:', embeds: [track.toEmbed()] });
                 } else if (index > 0) {
                     totalAdded++;
                 }
@@ -97,26 +97,26 @@ export async function playPlaylist(ctx: CommandContext<true>, playlist: Playlist
     const { info } = playlist;
     const eb = new EmbedBuilder()
         .setTitle(info.title ?? 'Unknown')
-        .setURL(playlist.endpoint!.toURL()!)
+        .setURL(playlistURL(playlist.endpoint!.payload.playlistId))
         .setThumbnail(bestThumbnail(info.thumbnails).url);
     const { author } = info;
     if (author) eb.setAuthor({ name: author.name, url: channelURL(author.id) });
     await ctx.replyOrFollowUp({
-        content: '**Added ' + totalAdded + ' tracks to the queue**',
+        content: '**Added ' + totalAdded + ' tracks to the queue**:',
         embeds: [eb.toJSON()]
     });
 }
 
 export async function playTrack(ctx: CommandContext<true>, track: Track) {
-    const player = ctx.player;
+    const { player } = ctx;
     const position = await player.enqueue(track);
     if (position < 0) {
         await ctx.reply(`An error occurred while attempting to play the video.`);
     } else if (position === 0) {
-        await ctx.reply({ content: '**Now Playing**', embeds: [track.toEmbed()] });
+        await ctx.reply({ content: '**Now Playing**:', embeds: [track.toEmbed()] });
     } else {
         await ctx.reply({
-            content: '**Added to the Queue**',
+            content: '**Added to the Queue**:',
             embeds: [track.toEmbed({ name: 'Position', value: position.toLocaleString(), inline: true })],
         });
     }

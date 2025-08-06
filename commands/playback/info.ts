@@ -8,7 +8,7 @@ export async function info(ctx: CommandContext<true>, index: number) {
     if (index === 0) {
         await nowPlaying(ctx);
     } else if (await canViewPlayback(ctx)) {
-        const player = ctx.player;
+        const { player } = ctx;
         if (index <= player.queue.length) {
             const track = player.queue.get(index - 1);
             if (track) {

@@ -1,15 +1,26 @@
-import { InteractionContextType, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
+import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from 'discord.js';
 import { Command } from '..';
-import { CommandContext } from '../../context';
+import { CommandContext, InteractionContext, MessageContext } from '../../context';
 import { canManagePlayback } from './play';
 
-export async function skip(ctx: CommandContext<true>) {
+export async function skip(ctx: CommandContext<true>, count?: number) {
     if (await canManagePlayback(ctx)) {
-        const track = await ctx.player.skip();
-        if (track) {
-            await ctx.reply({ content: '**Skipped**', embeds: [track.toEmbed()] });
+        const { player } = ctx;
+        if (count == null) {
+            const track = await player.skip();
+            if (track) {
+                await ctx.reply({ content: '**Skipped**:', embeds: [track.toEmbed()] });
+            } else {
+                await ctx.reply('Nothing is playing.');
+            }
         } else {
-            await ctx.reply('Nothing is playing.');
+            const { length } = player.queue.splice(0, count - 1);
+            const track = await player.skip();
+            if (track) {
+                await ctx.reply(`Skipped ${length + 1} tracks.`);
+            } else {
+                await ctx.reply('Nothing is playing.');
+            }
         }
     }
 }
@@ -24,16 +35,43 @@ export default {
         data: new SlashCommandBuilder()
             .setName('skip')
             .setDescription('Skip the current track.')
+            .addIntegerOption(new SlashCommandIntegerOption()
+                .setName('count')
+                .setDescription('The number of tracks to skip.')
+                .setMinValue(1))
             .setContexts(InteractionContextType.Guild)
             .setDefaultMemberPermissions(permissions.bitfield),
-        execute: skip,
+        async execute(ctx: InteractionContext<true>) {
+            const options = ctx.interaction.options;
+
+            const count = options.getInteger('count') ?? undefined;
+
+            await skip(ctx, count);
+        },
     },
     message: [
         {
             aliases: ['skip'],
             requiredPermissions: permissions,
             isDmRestricted: true,
-            execute: skip,
+            async execute(ctx: MessageContext<true>) {
+                const [input] = ctx.getArguments(1);
+
+                let count;
+                if (input) {
+                    if (!/^\d+$/.test(input)) {
+                        await ctx.reply('`count` must be an integer.');
+                        return;
+                    }
+                    count = parseInt(input);
+                    if (count <= 0) {
+                        await ctx.reply('`count` must be greater than 0.');
+                        return;
+                    }
+                }
+
+                return await skip(ctx, count);
+            },
         }
     ]
 } as Command;

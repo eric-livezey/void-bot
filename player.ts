@@ -9,11 +9,11 @@ import { ReadableStream } from 'node:stream/web';
 import { MusicResponsiveListItem, PlaylistVideo, Video } from 'youtubei.js/dist/src/parser/nodes';
 import { bestThumbnail, channelURL, Duration, videoURL } from './utils';
 
-const AUDIO_CACHE_DIR = path.join('cache', 'audio');
+const AUDIO_CACHE_DIR = 'C:\\Users\\fireb\\OneDrive - Wentworth Institute of Technology\\Visual Studio Code\\Void Bot.js\\audio';
 const SHOULD_DOWNLOAD = true;
 
 const DefaultFormatOptions = {
-    quality: 'highestaudio'
+    quality: 'highestaudio',
 } as const satisfies chooseFormatOptions;
 
 export interface TrackAuthor {
@@ -287,14 +287,14 @@ export class Track<T = unknown> {
  */
 export class Queue implements Iterable<Track> {
     private readonly list: Track[];
+    public constructor() {
+        this.list = [];
+    }
     public get length() {
         return this.list.length;
     }
     public get duration() {
         return this.list.reduce((acc, track) => acc + (track.duration ?? 0), 0);
-    }
-    public constructor() {
-        this.list = [];
     }
     public [Symbol.iterator]() {
         return this.values();
@@ -354,8 +354,15 @@ export class Queue implements Iterable<Track> {
             this.list[0].prepare();
         }
     }
+    public splice(start: number, deleteCount?: number) {
+        const part = this.list.splice(start, deleteCount);
+        if ((deleteCount == null || deleteCount > 0) && this.length > 0) {
+            this.list[0].prepare();
+        }
+        return part;
+    }
     public clear() {
-        this.list.splice(0);
+        this.splice(0);
     }
     public shuffle() {
         let currentIndex = this.list.length, randomIndex = -1;

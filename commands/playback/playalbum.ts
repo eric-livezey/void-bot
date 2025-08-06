@@ -14,7 +14,9 @@ export async function playAlbum(ctx: CommandContext<true>, query: string) {
     const contents = items.albums?.contents;
     if (contents?.length) {
         const album = await innertube.music.getAlbum(contents[0].id!);
-        const playlist = await innertube.getPlaylist(new URL(album.url!).searchParams.get('list')!);
+        const albumUrl = new URL(album.url!);
+        const playlistId = albumUrl.searchParams.get('list')!;
+        const playlist = await innertube.getPlaylist(playlistId);
         await playPlaylist(ctx, playlist);
     } else {
         await ctx.reply('There were no valid results for your query.');

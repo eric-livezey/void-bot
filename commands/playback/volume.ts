@@ -3,7 +3,7 @@ import { Command } from '..';
 import { CommandContext, InteractionContext, MessageContext } from '../../context';
 
 export async function volume(ctx: CommandContext<true>, percentage: number) {
-    const player = ctx.player;
+    const { player } = ctx;
     player.setVolume(percentage / 100);
     ctx.reply(`Volume set to ${percentage}%.`);
 }

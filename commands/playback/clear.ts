@@ -5,7 +5,7 @@ import { canManagePlayback } from './play';
 
 export async function clear(ctx: CommandContext<true>) {
     if (await canManagePlayback(ctx)) {
-        const player = ctx.player;
+        const { player } = ctx;
         if (player.queue.length) {
             player.queue.clear();
             await ctx.reply('Queue cleared.');

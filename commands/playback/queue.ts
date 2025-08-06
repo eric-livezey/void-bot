@@ -35,7 +35,7 @@ export function generateQueueMessage(player: Player, page: number): MessagePaylo
     if (embed === null) {
         content = 'Nothing is playing.'
     } else if (player.queue.length === 0) {
-        content = '**Now Playing**';
+        content = '**Now Playing**:';
     }
     const embeds = [];
     if (embed !== null) {
@@ -50,7 +50,7 @@ export function generateQueueMessage(player: Player, page: number): MessagePaylo
 
 export async function queue(ctx: CommandContext<true>) {
     if (await canViewPlayback(ctx)) {
-        const player = ctx.player;
+        const { player } = ctx;
         await ctx.reply(generateQueueMessage(player, 0));
     }
 }

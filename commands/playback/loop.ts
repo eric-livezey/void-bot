@@ -5,7 +5,7 @@ import { canManagePlayback } from './play';
 
 export async function loop(ctx: CommandContext<true>) {
     if (await canManagePlayback(ctx)) {
-        const player = ctx.player;
+        const { player } = ctx;
         const loop = player.loop = !player.loop;
         if (loop) {
             await ctx.reply('Loop enabled.');

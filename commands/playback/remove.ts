@@ -13,7 +13,7 @@ export async function remove(ctx: CommandContext<true>, index: number) {
             return await ctx.reply(`${index} is not a valid index in the queue.`,);
         }
         const track = queue.remove(index - 1);
-        return await ctx.reply({ content: '**Removed**', embeds: [track.toEmbed()] });
+        return await ctx.reply({ content: '**Removed**:', embeds: [track.toEmbed()] });
     }
 }
 

@@ -5,7 +5,7 @@ import { canManagePlayback } from './play';
 
 export async function pause(ctx: CommandContext<true>) {
     if (await canManagePlayback(ctx)) {
-        const player = ctx.player;
+        const { player } = ctx;
         if (!player.isPaused()) {
             const result = player.pause();
             if (result) {
