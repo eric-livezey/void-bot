@@ -9,7 +9,7 @@ import { ReadableStream } from 'node:stream/web';
 import { MusicResponsiveListItem, PlaylistVideo, Video } from 'youtubei.js/dist/src/parser/nodes';
 import { bestThumbnail, channelURL, Duration, videoURL } from './utils';
 
-const AUDIO_CACHE_DIR = 'C:\\Users\\fireb\\OneDrive - Wentworth Institute of Technology\\Visual Studio Code\\Void Bot.js\\audio';
+const AUDIO_CACHE_DIR = path.join('cache', 'audio');
 const SHOULD_DOWNLOAD = true;
 
 const DefaultFormatOptions = {
