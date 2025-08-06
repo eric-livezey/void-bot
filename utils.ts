@@ -327,10 +327,10 @@ export function extractChannelId(url: URL): string | null {
     return null;
 }
 /**
- * Resolves a Video ID from an input.
+ * Resolves a video ID from a string.
  * 
- * @param input 
- * @returns 
+ * @param input A string.
+ * @returns The video ID or `null`.
  */
 export function resolveVideoId(input: string): string | null {
     const url = resolveURL(input);
@@ -343,9 +343,12 @@ export function resolveVideoId(input: string): string | null {
     return null;
 }
 /**
+ * Resolves a channel ID from a string.
  * 
- * @param input 
- * @returns 
+ * **NOTE**: This only works on links which contain the channel ID.
+ * 
+ * @param input A string.
+ * @returns The channel ID or `null`.
  */
 export function resolveYouTubeChannelId(input: string): string | null {
     const url = resolveURL(input);
@@ -357,6 +360,12 @@ export function resolveYouTubeChannelId(input: string): string | null {
     }
     return null;
 }
+/**
+ * Gets a channel ID from a string.
+ * 
+ * @param input A string.
+ * @returns The channel ID or `null`.
+ */
 export async function getYouTubeChannelId(input: string) {
     const url = resolveURL(input);
     let channelId = null;
