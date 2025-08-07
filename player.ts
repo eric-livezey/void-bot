@@ -7,9 +7,9 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 import { MusicResponsiveListItem, PlaylistVideo, Video } from 'youtubei.js/dist/src/parser/nodes';
-import { bestThumbnail, channelURL, Duration, videoURL } from './utils';
+import { channelURL, Duration, generateVideoThumbnail, videoURL } from './utils';
 
-const AUDIO_CACHE_DIR = path.join('cache', 'audio');
+const AUDIO_CACHE_DIR = 'C:\\Users\\fireb\\OneDrive - Wentworth Institute of Technology\\Visual Studio Code\\Void Bot.js\\audio';
 const SHOULD_DOWNLOAD = true;
 
 const DefaultFormatOptions = {
@@ -129,11 +129,11 @@ export class Track<T = unknown> {
      * @param info An innertube video info object.
      */
     public static fromVideoInfo(info: ytdl.videoInfo) {
-        const { videoDetails } = info;
+        const { videoDetails, videoDetails: { videoId } } = info;
         const prepare = createYtdlVideoInfoPrepare(info);
         const details = {
-            url: videoURL(videoDetails.videoId, true),
-            thumbnail: bestThumbnail(videoDetails.thumbnails).url,
+            url: videoURL(videoId, true),
+            thumbnail: generateVideoThumbnail(videoId).url,
             duration: parseInt(info.videoDetails.lengthSeconds) * 1000,
             author: {
                 name: videoDetails.author.name,
@@ -161,7 +161,7 @@ export class Track<T = unknown> {
         const prepare = createYtdlPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
-            thumbnail: bestThumbnail(result.thumbnails).url,
+            thumbnail: generateVideoThumbnail(videoId).url,
             duration: result.duration.seconds * 1000,
             author: {
                 name: result.author.name,
@@ -180,7 +180,7 @@ export class Track<T = unknown> {
         const prepare = createYtdlPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
-            thumbnail: bestThumbnail(item.thumbnails).url,
+            thumbnail: generateVideoThumbnail(videoId).url,
             duration: item.duration.seconds * 1000,
             author: {
                 name: item.author.name,
@@ -201,7 +201,7 @@ export class Track<T = unknown> {
         const prepare = createYtdlPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
-            thumbnail: bestThumbnail(item.thumbnails).url,
+            thumbnail: generateVideoThumbnail(videoId).url,
             duration: item.duration!.seconds * 1000,
             author: {
                 name: item.artists![0].name,
@@ -355,7 +355,8 @@ export class Queue implements Iterable<Track> {
         }
     }
     public splice(start: number, deleteCount?: number) {
-        const part = this.list.splice(start, deleteCount);
+        // explicitly passing undefined for deleteCount in Array.splice is converted to 0
+        const part = this.list.splice(start, deleteCount ?? Infinity);
         if ((deleteCount == null || deleteCount > 0) && this.length > 0) {
             this.list[0].prepare();
         }
@@ -624,12 +625,12 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         }
         if (this.loop && this.isPlaying()) {
             this.nowPlaying.reset();
-            await this.play(this.nowPlaying).catch(() => this.skip());
+            await this.play(this.nowPlaying).catch(() => { this.skip() });
         }
         else {
             const track = this.queue.shift();
             if (track) {
-                await this.play(track).catch(() => this.skip());
+                await this.play(track).catch(() => { this.skip() });
             }
             else {
                 this.stop();

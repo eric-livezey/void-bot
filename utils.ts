@@ -1,6 +1,5 @@
 import { joinVoiceChannel } from '@discordjs/voice';
 import { Snowflake, VoiceBasedChannel } from 'discord.js';
-import { Thumbnail } from 'youtubei.js/dist/src/parser/misc';
 import { getInnertubeInstance } from './innertube';
 
 export class Duration {
@@ -402,6 +401,49 @@ export function playlistURL(playlistId: string) {
 export function channelURL(channelId: string) {
     return `https://www.youtube.com/channel/${encodeURIComponent(channelId)}`;
 }
+export interface Thumbnail {
+    /**
+     * The image's URL.
+     */
+    url: string;
+    /**
+     * The image's width.
+     */
+    width: number;
+    /**
+     * The image's height.
+     */
+    height: number;
+}
+export enum ThumbnailQuality {
+    Default = 'default',
+    Medium = 'mqdefault',
+    High = 'hqdefault',
+    Standard = 'sddefault',
+    MaxRes = 'maxresdefault',
+}
+const ThumbnailQualityDimensions = new Map<ThumbnailQuality, Pick<Thumbnail, 'width' | 'height'>>([
+    [ThumbnailQuality.Default, { width: 120, height: 90 }],
+    [ThumbnailQuality.Medium, { width: 320, height: 180 }],
+    [ThumbnailQuality.High, { width: 480, height: 360 }],
+    [ThumbnailQuality.Standard, { width: 640, height: 480 }],
+    [ThumbnailQuality.MaxRes, { width: 1280, height: 720 }],
+]);
+/**
+ * Generate a thumbnail for a YouTube video.
+ * 
+ * @param videoId YouTube video ID.
+ * @param quality Thumbnail quality. Default {@link ThumbnailQuality.MaxRes MaxRes}.
+ */
+export function generateVideoThumbnail(videoId: string, quality = ThumbnailQuality.MaxRes): Thumbnail {
+    return {
+        url: `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`,
+        ...ThumbnailQualityDimensions.get(quality)!
+    };
+}
+export function bestThumbnail(thumbnails: Thumbnail[]) {
+    return thumbnails.reduce((best, current) => current.width * current.height > best.height * best.width ? current : best);
+}
 export function createVoiceConnection(channel: VoiceBasedChannel) {
     const connection = joinVoiceChannel({
         channelId: channel.id,
@@ -422,7 +464,4 @@ export function createVoiceConnection(channel: VoiceBasedChannel) {
         console.error(e);
     });
     return connection;
-}
-export function bestThumbnail(thumnails: Thumbnail[]) {
-    return thumnails.reduce((best, current) => current.width * current.height > best.height * best.width ? current : best);
 }

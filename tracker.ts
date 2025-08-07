@@ -218,41 +218,45 @@ abstract class ResourceTracker {
         }
     }
     public async update() {
-        let guild, { categoryChannel, detailChannel } = await this.fetchChannels();
-        const { title, detail } = await this.fetchDetailsAndUpdateCache();
-        // if neither channel is resolved, create channel
-        if (!categoryChannel && !detailChannel) {
-            ({ categoryChannel, detailChannel } = await this.createChannels({
-                guild: guild ??= await this.client.guilds.fetch(this.guildId),
-                title,
-                detail,
-            }));
-        }
-        // if the category channel is not resolved, create it
-        if (!categoryChannel) {
-            categoryChannel = await this.createCategoryChannel({
-                guild: guild ??= await this.client.guilds.fetch(this.guildId),
-                title,
-            });
-        }
-        // if the detail channel is not resolved, create it
-        if (!detailChannel) {
-            detailChannel = await this.createDetailChannel(categoryChannel, {
-                guild: guild ??= await this.client.guilds.fetch(this.guildId),
-                detail,
-            });
-        }
-        // if the detail channel is not a child of the category child, move it
-        if (detailChannel.parentId !== categoryChannel.id) {
-            await detailChannel.edit({ parent: categoryChannel });
-        }
-        // if the category channel's name is not the current title, change it
-        if (categoryChannel.name !== title) {
-            await categoryChannel.setName(title);
-        }
-        // if the detail channel's name is not the current detail, change it
-        if (detailChannel.name !== detail) {
-            await detailChannel.setName(detail);
+        try {
+            let guild, { categoryChannel, detailChannel } = await this.fetchChannels();
+            const { title, detail } = await this.fetchDetailsAndUpdateCache();
+            // if neither channel is resolved, create channel
+            if (!categoryChannel && !detailChannel) {
+                ({ categoryChannel, detailChannel } = await this.createChannels({
+                    guild: guild ??= await this.client.guilds.fetch(this.guildId),
+                    title,
+                    detail,
+                }));
+            }
+            // if the category channel is not resolved, create it
+            if (!categoryChannel) {
+                categoryChannel = await this.createCategoryChannel({
+                    guild: guild ??= await this.client.guilds.fetch(this.guildId),
+                    title,
+                });
+            }
+            // if the detail channel is not resolved, create it
+            if (!detailChannel) {
+                detailChannel = await this.createDetailChannel(categoryChannel, {
+                    guild: guild ??= await this.client.guilds.fetch(this.guildId),
+                    detail,
+                });
+            }
+            // if the detail channel is not a child of the category child, move it
+            if (detailChannel.parentId !== categoryChannel.id) {
+                await detailChannel.edit({ parent: categoryChannel });
+            }
+            // if the category channel's name is not the current title, change it
+            if (categoryChannel.name !== title) {
+                await categoryChannel.setName(title);
+            }
+            // if the detail channel's name is not the current detail, change it
+            if (detailChannel.name !== detail) {
+                await detailChannel.setName(detail);
+            }
+        } catch (error) {
+            console.error(error);
         }
     }
     public isVideo(): this is VideoTracker {
