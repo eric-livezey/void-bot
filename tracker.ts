@@ -2,7 +2,7 @@ import { _Nullable, CategoryChannel, CategoryChannelResolvable, ChannelType, Cli
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import Innertube from 'youtubei.js/agnostic';
-import { C4TabbedHeader, PageHeader } from 'youtubei.js/dist/src/parser/nodes';
+import { PageHeader } from 'youtubei.js/dist/src/parser/nodes';
 import { Channel } from 'youtubei.js/dist/src/parser/youtube';
 import { getInnertubeInstance } from './innertube';
 
@@ -139,7 +139,7 @@ abstract class ResourceTracker {
     public readonly resourceId: string;
     public categoryChannelId: Snowflake | null;
     public detailChannelId: Snowflake | null;
-    private details: TrackerDetails | null;
+    private details: Partial<TrackerDetails> | null;
     public get title() {
         return this.details?.title ?? null;
     }
@@ -174,29 +174,32 @@ abstract class ResourceTracker {
         this.details = null;
     }
 
-    protected abstract fetchDetails(innertube?: Innertube): Promise<TrackerDetails>;
+    protected abstract fetchDetails(innertube?: Innertube): Promise<Partial<TrackerDetails>>;
     private async fetchDetailsAndUpdateCache(innertube?: Innertube) {
-        return this.details = await this.fetchDetails(innertube);
+        let { title, detail } = await this.fetchDetails(innertube);
+        title ??= this.details?.detail;
+        detail ??= this.details?.title;
+        return this.details = { title, detail };
     }
     private async createCategoryChannel(options?: CreateCategoryChannelOptions) {
         const guild = options?.guild ?? await this.client.guilds.fetch(this.guildId);
-        const title = options?.title ?? (options?.details ?? await this.fetchDetailsAndUpdateCache(options?.innertube)).title;
-        return { id: this.categoryChannelId } = await createCategoryChannel(this.identifier, guild, title);
+        const title = options?.title ?? (options?.details ?? await this.fetchDetailsAndUpdateCache(options?.innertube)).title ?? this.title;
+        return { id: this.categoryChannelId } = await createCategoryChannel(this.identifier, guild, title ?? 'Unknown');
     }
     private async createDetailChannel(parent: CategoryChannelResolvable, options?: CreateDetailChannelOptions) {
         const guild = options?.guild ?? await this.client.guilds.fetch(this.guildId);
-        const viewCount = options?.detail ?? (options?.details ?? await this.fetchDetailsAndUpdateCache(options?.innertube)).detail;
-        return { id: this.detailChannelId } = await createDetailChannel(this.identifier, guild, viewCount, parent);
+        const detail = options?.detail ?? (options?.details ?? await this.fetchDetailsAndUpdateCache(options?.innertube)).detail ?? this.detail;
+        return { id: this.detailChannelId } = await createDetailChannel(this.identifier, guild, detail ?? 'Unknown', parent);
     }
     private async createChannels(options?: CreateCategoryChannelOptions & CreateDetailChannelOptions) {
         const guild = options?.guild ?? await this.client.guilds.fetch(this.guildId);
         const title = options?.title;
         const detail = options?.detail;
-        let details = options?.details;
+        let details: Partial<TrackerDetails> | undefined = options?.details;
         if (title == null || detail == null) {
             details ??= await this.fetchDetailsAndUpdateCache(options?.innertube);
         }
-        return { categoryChannel: { id: this.categoryChannelId }, detailChannel: { id: this.detailChannelId } } = await createChannels(this.identifier, guild, title ?? details!.title, detail ?? details!.detail);
+        return { categoryChannel: { id: this.categoryChannelId }, detailChannel: { id: this.detailChannelId } } = await createChannels(this.identifier, guild, title ?? details!.title ?? 'Unknown', detail ?? details!.detail ?? 'Unknown');
     }
     private async fetchChannels(): Promise<_Nullable<TrackerChannels>> {
         const { channels } = this.client;
@@ -218,45 +221,41 @@ abstract class ResourceTracker {
         }
     }
     public async update() {
-        try {
-            let guild, { categoryChannel, detailChannel } = await this.fetchChannels();
-            const { title, detail } = await this.fetchDetailsAndUpdateCache();
-            // if neither channel is resolved, create channel
-            if (!categoryChannel && !detailChannel) {
-                ({ categoryChannel, detailChannel } = await this.createChannels({
-                    guild: guild ??= await this.client.guilds.fetch(this.guildId),
-                    title,
-                    detail,
-                }));
-            }
-            // if the category channel is not resolved, create it
-            if (!categoryChannel) {
-                categoryChannel = await this.createCategoryChannel({
-                    guild: guild ??= await this.client.guilds.fetch(this.guildId),
-                    title,
-                });
-            }
-            // if the detail channel is not resolved, create it
-            if (!detailChannel) {
-                detailChannel = await this.createDetailChannel(categoryChannel, {
-                    guild: guild ??= await this.client.guilds.fetch(this.guildId),
-                    detail,
-                });
-            }
-            // if the detail channel is not a child of the category child, move it
-            if (detailChannel.parentId !== categoryChannel.id) {
-                await detailChannel.edit({ parent: categoryChannel });
-            }
-            // if the category channel's name is not the current title, change it
-            if (categoryChannel.name !== title) {
-                await categoryChannel.setName(title);
-            }
-            // if the detail channel's name is not the current detail, change it
-            if (detailChannel.name !== detail) {
-                await detailChannel.setName(detail);
-            }
-        } catch (error) {
-            console.error(error);
+        let guild, { categoryChannel, detailChannel } = await this.fetchChannels();
+        const { title, detail } = await this.fetchDetailsAndUpdateCache();
+        // if neither channel is resolved, create channel
+        if (!categoryChannel && !detailChannel) {
+            ({ categoryChannel, detailChannel } = await this.createChannels({
+                guild: guild ??= await this.client.guilds.fetch(this.guildId),
+                title,
+                detail,
+            }));
+        }
+        // if the category channel is not resolved, create it
+        if (!categoryChannel) {
+            categoryChannel = await this.createCategoryChannel({
+                guild: guild ??= await this.client.guilds.fetch(this.guildId),
+                title,
+            });
+        }
+        // if the detail channel is not resolved, create it
+        if (!detailChannel) {
+            detailChannel = await this.createDetailChannel(categoryChannel, {
+                guild: guild ??= await this.client.guilds.fetch(this.guildId),
+                detail,
+            });
+        }
+        // if the detail channel is not a child of the category channel, move it
+        if (detailChannel.parentId !== categoryChannel.id) {
+            await detailChannel.edit({ parent: categoryChannel });
+        }
+        // if the category channel's name is not the current title, change it
+        if (title != null && categoryChannel.name !== title) {
+            await categoryChannel.setName(title);
+        }
+        // if the detail channel's name is not the current detail, change it
+        if (detail != null && detailChannel.name !== detail) {
+            await detailChannel.setName(detail);
         }
     }
     public isVideo(): this is VideoTracker {
@@ -290,10 +289,10 @@ class VideoTracker extends ResourceTracker {
         super(client, guildId, ResourceType.VIDEO, videoId, categoryChannelId, detailChannelId);
     }
 
-    protected async fetchDetails(innertube?: Innertube): Promise<TrackerDetails> {
+    protected async fetchDetails(innertube?: Innertube) {
         innertube ??= await getInnertubeInstance();
         const { basic_info: { title, view_count: viewCount } } = await innertube.getBasicInfo(this.resourceId);
-        return { title: title!, detail: `${formatViewCount(viewCount!)} views` };
+        return { title, detail: viewCount != null ? `${formatViewCount(viewCount)} views` : undefined };
     }
     public static fromJSON(client: Client, json: JSONTracker) {
         return new this(client, json.guildId, json.resourceId, json.categoryChannelId, json.detailChannelId,);
@@ -309,10 +308,10 @@ class ChannelTracker extends ResourceTracker {
         super(client, guildId, ResourceType.CHANNEL, channelId, categoryChannelId, detailChannelId);
     }
 
-    protected async fetchDetails(innertube?: Innertube): Promise<TrackerDetails> {
+    protected async fetchDetails(innertube?: Innertube) {
         innertube ??= await getInnertubeInstance();
-        const channel = await innertube.getChannel(this.resourceId) as Channel & { header: C4TabbedHeader };
-        return { title: channel.metadata.title!, detail: `${(channel.header as PageHeader).content!.metadata!.metadata_rows[1].metadata_parts![0].text!.toString()}` };
+        const channel = await innertube.getChannel(this.resourceId) as Channel & { header?: PageHeader };
+        return { title: channel.metadata.title, detail: channel.header?.content?.metadata?.metadata_rows[1]?.metadata_parts?.[0]?.text?.toString() };
     }
     public static fromJSON(client: Client, json: JSONTracker) {
         return new this(client, json.guildId, json.resourceId, json.categoryChannelId, json.detailChannelId,);
@@ -427,14 +426,16 @@ export class TrackerManager {
     /**
      * Update all trackers and related channels.
      */
-    public update() {
+    public async update() {
+        const promises = [];
         for (const guildTrackers of this.trackers.values()) {
             for (const resourceTrackers of guildTrackers.values()) {
                 for (const tracker of resourceTrackers.values()) {
-                    tracker.update();
+                    promises.push(tracker.update().catch());
                 }
             }
         }
+        await Promise.all(promises);
     }
     /**
      * Save trackers to the disk.
