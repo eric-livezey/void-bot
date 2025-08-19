@@ -19,8 +19,11 @@ export enum ResourceType {
     /**
      * YouTube video resource.
      */
-    VIDEO,
-    CHANNEL,
+    Video,
+    /**
+     * YouTube channel resource.
+     */
+    Channel,
 }
 
 /**
@@ -81,8 +84,8 @@ interface TrackerChannels {
 }
 
 type Trackers = {
-    [ResourceType.VIDEO]: VideoTracker;
-    [ResourceType.CHANNEL]: ChannelTracker;
+    [ResourceType.Video]: VideoTracker;
+    [ResourceType.Channel]: ChannelTracker;
 }
 
 function getTrackers(client: Client) {
@@ -272,9 +275,9 @@ abstract class ResourceTracker {
     }
     public static fromJSON(client: Client, json: JSONTracker): ResourceTracker {
         switch (json.type) {
-            case ResourceType.VIDEO:
+            case ResourceType.Video:
                 return VideoTracker.fromJSON(client, json);
-            case ResourceType.CHANNEL:
+            case ResourceType.Channel:
                 return ChannelTracker.fromJSON(client, json);
         }
     }
@@ -286,7 +289,7 @@ class VideoTracker extends ResourceTracker {
     }
 
     constructor(client: Client, guildId: string, videoId: string, categoryChannelId?: string, detailChannelId?: string) {
-        super(client, guildId, ResourceType.VIDEO, videoId, categoryChannelId, detailChannelId);
+        super(client, guildId, ResourceType.Video, videoId, categoryChannelId, detailChannelId);
     }
 
     protected async fetchDetails(innertube?: Innertube) {
@@ -305,7 +308,7 @@ class ChannelTracker extends ResourceTracker {
     }
 
     constructor(client: Client, guildId: string, channelId: string, categoryChannelId?: string, detailChannelId?: string) {
-        super(client, guildId, ResourceType.CHANNEL, channelId, categoryChannelId, detailChannelId);
+        super(client, guildId, ResourceType.Channel, channelId, categoryChannelId, detailChannelId);
     }
 
     protected async fetchDetails(innertube?: Innertube) {
@@ -452,10 +455,10 @@ export class TrackerManager {
         saveTrackers(trackers);
     }
     public hasVideoTracker(guildId: string, videoId: string) {
-        return this.has(guildId, ResourceType.VIDEO, videoId);
+        return this.has(guildId, ResourceType.Video, videoId);
     }
     public getVideoTracker(guildId: string, videoId: string) {
-        return this.get(guildId, ResourceType.VIDEO, videoId);
+        return this.get(guildId, ResourceType.Video, videoId);
     }
     public async addVideoTracker(guildId: string, videoId: string) {
         let tracker = this.getVideoTracker(guildId, videoId);
@@ -464,17 +467,17 @@ export class TrackerManager {
         }
         tracker = new VideoTracker(this.client, guildId, videoId);
         await tracker.update();
-        this.set(guildId, ResourceType.VIDEO, videoId, tracker);
+        this.set(guildId, ResourceType.Video, videoId, tracker);
         return tracker;
     }
     public async removeVideoTracker(guildId: string, videoId: string) {
-        await this.delete(guildId, ResourceType.VIDEO, videoId);
+        await this.delete(guildId, ResourceType.Video, videoId);
     }
     public hasChannelTracker(guildId: string, videoId: string) {
-        return this.has(guildId, ResourceType.CHANNEL, videoId);
+        return this.has(guildId, ResourceType.Channel, videoId);
     }
     public getChannelTracker(guildId: string, videoId: string) {
-        return this.get(guildId, ResourceType.CHANNEL, videoId);
+        return this.get(guildId, ResourceType.Channel, videoId);
     }
     public async addChannelTracker(guildId: string, videoId: string) {
         let tracker = this.getChannelTracker(guildId, videoId);
@@ -483,10 +486,10 @@ export class TrackerManager {
         }
         tracker = new ChannelTracker(this.client, guildId, videoId);
         await tracker.update();
-        this.set(guildId, ResourceType.CHANNEL, videoId, tracker);
+        this.set(guildId, ResourceType.Channel, videoId, tracker);
         return tracker;
     }
     public async removeChannelTracker(guildId: string, videoId: string) {
-        await this.delete(guildId, ResourceType.CHANNEL, videoId);
+        await this.delete(guildId, ResourceType.Channel, videoId);
     }
 }
