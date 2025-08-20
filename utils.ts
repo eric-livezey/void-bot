@@ -215,6 +215,7 @@ export class Duration {
 function zeroFill(value: number, maxLength = 2) {
     return value.toString().padStart(maxLength, '0');
 }
+
 /**
  * Resolves a snowflake from a string.
  * 
@@ -251,6 +252,38 @@ export function resolveChannelId(input: string): Snowflake | null {
 export function resolveRoleId(input: string): Snowflake | null {
     return input.match(/^<#([0-9]{1,20})>$/)?.[1] ?? resolveSnowflake(input);
 }
+export function createVoiceConnection(channel: VoiceBasedChannel) {
+    const connection = joinVoiceChannel({
+        channelId: channel.id,
+        guildId: channel.guildId,
+        adapterCreator: channel.guild.voiceAdapterCreator,
+        selfDeaf: false
+    });
+    connection.on('error', e => {
+        console.warn('A voice connection error occurred.\nAttempting to rejoin...');
+        while (connection.rejoinAttempts < 5) {
+            if (connection.rejoin()) {
+                console.log('Rejoin was successful.');
+                return;
+            }
+        }
+        console.error('Rejoin failed after 5 attempts with the following error:');
+        connection.destroy();
+        console.error(e);
+    });
+    return connection;
+}
+
+enum WebPageType {
+    Watch = 'WEB_PAGE_TYPE_WATCH',
+    Channel = 'WEB_PAGE_TYPE_CHANNEL',
+    Playlist = 'WEB_PAGE_TYPE_PLAYLIST',
+}
+const validProtocols = new Set(['http:', 'https:']);
+const validHostnames = new Set(['www.youtube.com', 'youtube.com', 'm.youtube.com', 'music.youtube.com']);
+const shortUrlHostname = 'youtu.be';
+const videoIdRegexp = /^[\w-]{11}$/;
+const channelIdRegexp = /^[\w-]{24}$/;
 /**
  * Resolves a url from a string.
  * 
@@ -260,25 +293,15 @@ export function resolveRoleId(input: string): Snowflake | null {
 export function resolveURL(input: string): URL | null {
     return URL.canParse(input) ? new URL(input) : null;
 }
-enum WebPageType {
-    Watch = 'WEB_PAGE_TYPE_WATCH',
-    Channel = 'WEB_PAGE_TYPE_CHANNEL',
-    Playlist = 'WEB_PAGE_TYPE_PLAYLIST',
-}
-const YOUTUBE_PROTOCOLS = new Set(['http:', 'https:']);
-const YOUTUBE_HOSTNAMES = new Set(['www.youtube.com', 'youtube.com', 'm.youtube.com', 'music.youtube.com']);
-const YOUTUBE_SHORT_URL_HOSTNAME = 'youtu.be';
-const VIDEO_ID_REGEXP = /^[\w-]{11}$/;
-const CHANNEL_ID_REGEXP = /^[\w-]{24}$/;
 /**
  * Returns whether a URL has a valid domain and protocol for a YouTube URL.
  * 
  * @param url A URL.
- * @param allowShort - Allow short urls. Default `false`.
+ * @param allowShort Allow short urls. Default `false`.
  * @returns `true` if the URL corresponds to a YouTube URL, else `false`.
  */
 export function isYouTubeURL(url: URL, allowShort = false): boolean {
-    return YOUTUBE_PROTOCOLS.has(url.protocol) && YOUTUBE_HOSTNAMES.has(url.hostname) || allowShort && url.hostname === YOUTUBE_SHORT_URL_HOSTNAME;
+    return validProtocols.has(url.protocol) && validHostnames.has(url.hostname) || allowShort && url.hostname === shortUrlHostname;
 }
 /**
  * Extracts the video ID from a URL.
@@ -296,7 +319,7 @@ export function extractVideoId(url: URL): string | null {
             if (a === 'shorts') {
                 return b;
             }
-            if (url.hostname === YOUTUBE_SHORT_URL_HOSTNAME && b == null) {
+            if (url.hostname === shortUrlHostname && b == null) {
                 return a ?? null;
             }
         }
@@ -340,7 +363,7 @@ export function resolveVideoId(input: string): string | null {
     const url = resolveURL(input);
     if (url) {
         const videoId = extractVideoId(url);
-        if (videoId != null && VIDEO_ID_REGEXP.test(videoId)) {
+        if (videoId != null && videoIdRegexp.test(videoId)) {
             return videoId;
         }
     }
@@ -358,7 +381,7 @@ export function resolveYouTubeChannelId(input: string): string | null {
     const url = resolveURL(input);
     if (url) {
         const channelId = extractChannelId(url);
-        if (channelId != null && CHANNEL_ID_REGEXP.test(channelId)) {
+        if (channelId != null && channelIdRegexp.test(channelId)) {
             return channelId;
         }
     }
@@ -385,10 +408,10 @@ export async function getYouTubeChannelId(input: string) {
             }
         }
     }
-    return channelId != null && CHANNEL_ID_REGEXP.test(channelId) ? channelId : null;
+    return channelId != null && channelIdRegexp.test(channelId) ? channelId : null;
 
 }
-export function videoURL(videoId: string, short?: boolean) {
+export function videoURL(videoId: string, short = false) {
     if (short) {
         return `https://youtu.be/${encodeURIComponent(videoId)}`;
     } else {
@@ -441,27 +464,12 @@ export function generateVideoThumbnail(videoId: string, quality = ThumbnailQuali
         ...ThumbnailQualityDimensions.get(quality)!
     };
 }
+/**
+ * Finds the highest resolution thumbnail in a list of thumbnails.
+ * 
+ * @param thumbnails A list of thumbnails.
+ * @returns The highest resolution thumbnail.
+ */
 export function bestThumbnail(thumbnails: Thumbnail[]) {
     return thumbnails.reduce((best, current) => current.width * current.height > best.height * best.width ? current : best);
-}
-export function createVoiceConnection(channel: VoiceBasedChannel) {
-    const connection = joinVoiceChannel({
-        channelId: channel.id,
-        guildId: channel.guildId,
-        adapterCreator: channel.guild.voiceAdapterCreator,
-        selfDeaf: false
-    });
-    connection.on('error', e => {
-        console.warn('A voice connection error occurred.\nAttempting to rejoin...');
-        while (connection.rejoinAttempts < 5) {
-            if (connection.rejoin()) {
-                console.log('Rejoin was successful.');
-                return;
-            }
-        }
-        console.error('Rejoin failed after 5 attempts with the following error:');
-        connection.destroy();
-        console.error(e);
-    });
-    return connection;
 }
