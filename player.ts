@@ -10,9 +10,10 @@ import { MusicResponsiveListItem, PlaylistVideo, Video } from 'youtubei.js/dist/
 import { VideoInfo } from 'youtubei.js/dist/src/parser/youtube';
 import { getInnertubeInstance } from './innertube';
 import { channelURL, Duration, generateVideoThumbnail, videoURL } from './utils';
+import ffmpegPath from 'ffmpeg-static';
 
 const AUDIO_CACHE_DIR = path.join('cache', 'audio');
-const SHOULD_DOWNLOAD = false;
+const SHOULD_DOWNLOAD = true;
 
 // const DefaultFormatOptions = {
 //     quality: 'highestaudio',
@@ -734,9 +735,15 @@ function createDownloadPrepare(id: string, fn: (path: string) => Promise<string>
     }
 }
 
-function createStreamPrepare(fn: () => Promise<Readable>) {
+function createStreamPrepare(id: string, fn: () => Promise<Readable>) {
+    const file = path.join(AUDIO_CACHE_DIR, `${id}.webm`);
     return async function prepare() {
-        return await fn().then(stream => createAudioResource(stream, DefaultCreateAudioResourceOptions));
+        if (existsSync(file)) {
+            // use prior downloaded tracks even in streams as they are more reliable
+            return createAudioResource(file, DefaultCreateAudioResourceOptions);
+        } else {
+            return await fn().then(stream => createAudioResource(stream, DefaultCreateAudioResourceOptions));
+        }
     }
 }
 
@@ -765,7 +772,7 @@ function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
     if (download) {
         return createDownloadPrepare(videoId, (path: string) => downloadAudio(videoId, path));
     } else {
-        return createStreamPrepare(() => getStreamingURL(videoId).then(url => fetch(url)).then(res => Readable.fromWeb(res.body! as ReadableStream)));
+        return createStreamPrepare(videoId, () => getStreamingURL(videoId).then(url => fetch(url)).then(res => Readable.fromWeb(res.body! as ReadableStream)));
     }
 }
 
@@ -776,6 +783,7 @@ function downloadAudio(videoId: string, path: string) {
         const args = [
             '-f', 'bestaudio',
             '-o', path,
+            '--ffmpeg-location', ffmpegPath!,
             '--quiet',
             videoId.startsWith('-') ? videoURL(videoId) : videoId
         ];
