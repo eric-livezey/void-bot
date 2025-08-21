@@ -1,20 +1,22 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
-import ytdl, { chooseFormatOptions, videoInfo } from '@distube/ytdl-core';
 import { APIEmbedField, EmbedBuilder, RestOrArray, Snowflake } from 'discord.js';
+import { exec, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import { createWriteStream, existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 import { MusicResponsiveListItem, PlaylistVideo, Video } from 'youtubei.js/dist/src/parser/nodes';
+import { VideoInfo } from 'youtubei.js/dist/src/parser/youtube';
+import { getInnertubeInstance } from './innertube';
 import { channelURL, Duration, generateVideoThumbnail, videoURL } from './utils';
 
 const AUDIO_CACHE_DIR = 'C:\\Users\\fireb\\OneDrive - Wentworth Institute of Technology\\Visual Studio Code\\Void Bot.js\\audio';
 const SHOULD_DOWNLOAD = true;
 
-const DefaultFormatOptions = {
-    quality: 'highestaudio',
-} as const satisfies chooseFormatOptions;
+// const DefaultFormatOptions = {
+//     quality: 'highestaudio',
+// } as const satisfies chooseFormatOptions;
 
 export interface TrackAuthor {
     /**
@@ -128,19 +130,22 @@ export class Track<T = unknown> {
      *
      * @param info An innertube video info object.
      */
-    public static fromVideoInfo(info: ytdl.videoInfo) {
-        const { videoDetails, videoDetails: { videoId } } = info;
-        const prepare = createYtdlVideoInfoPrepare(info);
+    public static fromVideoInfo(info: VideoInfo) {
+        // const { videoDetails, videoDetails: { videoId } } = info;
+        // const prepare = createYtdlVideoInfoPrepare(info);
+        const { basic_info: videoDetails } = info;
+        const videoId = videoDetails.id!;
+        const prepare = createYtDlpPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
             thumbnail: generateVideoThumbnail(videoId).url,
-            duration: parseInt(info.videoDetails.lengthSeconds) * 1000,
+            duration: info.basic_info.duration! * 1000,
             author: {
-                name: videoDetails.author.name,
-                url: channelURL(videoDetails.author.id),
+                name: videoDetails.author!,
+                url: channelURL(videoDetails.channel!.id!),
             }
         };
-        return new Track(prepare, videoDetails.title, details);
+        return new Track(prepare, videoDetails.title!, details);
     }
     /**
      * Creates a track from a YouTube video ID.
@@ -148,7 +153,10 @@ export class Track<T = unknown> {
      * @param videoId A YouTube video ID.
      */
     public static async fromVideoId(videoId: string) {
-        const info = await (SHOULD_DOWNLOAD && existsSync(path.join(AUDIO_CACHE_DIR, `${videoId}.webm`)) ? ytdl.getBasicInfo(videoId) : ytdl.getInfo(videoId));
+        const innertube = await getInnertubeInstance();
+        // const info = await (SHOULD_DOWNLOAD && existsSync(path.join(AUDIO_CACHE_DIR, `${videoId}.webm`)) ? ytdl.getBasicInfo(videoId) : ytdl.getInfo(videoId));
+        const info = await innertube.getBasicInfo(videoId);
+        info.basic_info.id ??= videoId;
         return Track.fromVideoInfo(info);
     }
     /**
@@ -158,7 +166,7 @@ export class Track<T = unknown> {
      */
     public static fromSearchResult(result: Video) {
         const videoId = result.video_id;
-        const prepare = createYtdlPrepare(videoId);
+        const prepare = createYtDlpPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
             thumbnail: generateVideoThumbnail(videoId).url,
@@ -177,7 +185,7 @@ export class Track<T = unknown> {
      */
     public static fromPlaylistItem(item: PlaylistVideo) {
         const videoId = item.id;
-        const prepare = createYtdlPrepare(videoId);
+        const prepare = createYtDlpPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
             thumbnail: generateVideoThumbnail(videoId).url,
@@ -198,7 +206,7 @@ export class Track<T = unknown> {
      */
     public static fromAlbumItem(item: MusicResponsiveListItem) {
         const videoId = item.id!;
-        const prepare = createYtdlPrepare(videoId);
+        const prepare = createYtDlpPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
             thumbnail: generateVideoThumbnail(videoId).url,
@@ -665,48 +673,48 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
 // keep track of in progress downloads
 const downloads: Record<string, Promise<string>> = {};
 
-function downloadFromStream(stream: Readable, path: string, id: string) {
-    if (id in downloads) {
-        // return in progress downloads
-        return downloads[id];
-    } else {
-        return downloads[id] = new Promise((resolve, reject) => {
-            const start = Date.now();
-            const writeStream = createWriteStream(path);
-            // cleanly reject errors and remove the file
-            function error(...args: Parameters<typeof reject>) {
-                try {
-                    writeStream.close();
-                    rmSync(path);
-                } catch (e) {
-                    delete downloads[id];
-                    reject(e);
-                }
-                delete downloads[id];
-                reject(...args);
-            }
-            // timeout
-            const timeout = setTimeout(() => {
-                if (writeStream.bytesWritten === 0)
-                    error(`error on download ${id}: timed out after 10 seconds`);
-            }, 10000);
-            writeStream.once('finish', () => {
-                const end = Date.now();
-                console.log(`Took ${end - start}ms to download ${id}.webm.`);
-                clearTimeout(timeout);
-                if (writeStream.bytesWritten === 0)
-                    error(`error on download ${id}: the write stream didn't write any data`);
-                delete downloads[id];
-                resolve(path);
-            });
-            writeStream.once('error', (e) => {
-                clearTimeout(timeout);
-                error(e);
-            });
-            stream.pipe(writeStream);
-        });
-    }
-}
+// function downloadFromStream(stream: Readable, path: string, id: string) {
+//     if (id in downloads) {
+//         // return in progress downloads
+//         return downloads[id];
+//     } else {
+//         return downloads[id] = new Promise((resolve, reject) => {
+//             const start = Date.now();
+//             const writeStream = createWriteStream(path);
+//             // cleanly reject errors and remove the file
+//             function error(...args: Parameters<typeof reject>) {
+//                 try {
+//                     writeStream.close();
+//                     rmSync(path);
+//                 } catch (e) {
+//                     delete downloads[id];
+//                     reject(e);
+//                 }
+//                 delete downloads[id];
+//                 reject(...args);
+//             }
+//             // timeout
+//             const timeout = setTimeout(() => {
+//                 if (writeStream.bytesWritten === 0)
+//                     error(`error on download ${id}: timed out after 10 seconds`);
+//             }, 10000);
+//             writeStream.once('finish', () => {
+//                 const end = Date.now();
+//                 console.log(`Took ${end - start}ms to download ${id}.webm.`);
+//                 clearTimeout(timeout);
+//                 if (writeStream.bytesWritten === 0)
+//                     error(`error on download ${id}: the write stream didn't write any data`);
+//                 delete downloads[id];
+//                 resolve(path);
+//             });
+//             writeStream.once('error', (e) => {
+//                 clearTimeout(timeout);
+//                 error(e);
+//             });
+//             stream.pipe(writeStream);
+//         });
+//     }
+// }
 
 const DefaultCreateAudioResourceOptions = {
     inlineVolume: true
@@ -732,20 +740,81 @@ function createStreamPrepare(fn: () => Promise<Readable>) {
     }
 }
 
-// ytdl-core
+// ytdl-core (no longer supported)
 
-function createReadablePrepare(id: string, fn: () => Readable, download = SHOULD_DOWNLOAD) {
+// function createReadablePrepare(id: string, fn: () => Readable, download = SHOULD_DOWNLOAD) {
+//     if (download) {
+//         return createDownloadPrepare(id, (path) => downloadFromStream(fn(), path, id));
+//     } else {
+//         return createStreamPrepare(async () => fn());
+//     }
+// }
+
+// function createYtdlPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
+//     return createReadablePrepare(videoId, () => ytdl(videoId, DefaultFormatOptions), download);
+// }
+
+// function createYtdlVideoInfoPrepare(info: videoInfo, download = SHOULD_DOWNLOAD) {
+//     return createReadablePrepare(info.videoDetails.videoId, () => ytdl.downloadFromInfo(info, DefaultFormatOptions), download);
+// }
+
+// yt-dlp
+// NOTE: ytdl-core is significantly faster
+
+function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
     if (download) {
-        return createDownloadPrepare(id, (path) => downloadFromStream(fn(), path, id));
+        return createDownloadPrepare(videoId, (path: string) => downloadAudio(videoId, path));
     } else {
-        return createStreamPrepare(async () => fn());
+        return createStreamPrepare(() => getStreamingURL(videoId).then(url => fetch(url)).then(res => Readable.fromWeb(res.body! as ReadableStream)));
     }
 }
 
-function createYtdlPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
-    return createReadablePrepare(videoId, () => ytdl(videoId, DefaultFormatOptions), download);
+function downloadAudio(videoId: string, path: string) {
+    if (videoId in downloads) {
+        // return in progress downloads
+        return downloads[videoId];
+    } else {
+        // create new promise to resolve downloaded audio
+        return downloads[videoId] = new Promise<string>((resolve, reject) => {
+            // arguments
+            const args = [
+                '-f', 'bestaudio',
+                '-o', path,
+                '--quiet',
+                videoId.startsWith('-') ? videoURL(videoId) : videoId
+            ];
+
+            // spawn yt-dlp
+            const proc = spawn('yt-dlp', args);
+
+            // log error messages
+            proc.stderr.on('data', data => {
+                console.error(data.toString());
+            });
+
+            // resolve or reject on closes
+            proc.on('close', code => {
+                delete downloads[videoId];
+                if (code === 0) {
+                    resolve(path);
+                } else {
+                    rmSync(path);
+                    reject(`yt-dlp exited with code ${code}.`);
+                }
+            });
+        });
+    }
 }
 
-function createYtdlVideoInfoPrepare(info: videoInfo, download = SHOULD_DOWNLOAD) {
-    return createReadablePrepare(info.videoDetails.videoId, () => ytdl.downloadFromInfo(info, DefaultFormatOptions), download);
+function getStreamingURL(videoId: string) {
+    // resolve the streaming URL from yt-dlp
+    return new Promise<string>((resolve, reject) => {
+        exec(`yt-dlp -f bestaudio --get-url ${videoId}`, (error, stdout) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve(stdout.trim())
+            }
+        });
+    });
 }
