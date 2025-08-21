@@ -11,8 +11,8 @@ import { VideoInfo } from 'youtubei.js/dist/src/parser/youtube';
 import { getInnertubeInstance } from './innertube';
 import { channelURL, Duration, generateVideoThumbnail, videoURL } from './utils';
 
-const AUDIO_CACHE_DIR = 'C:\\Users\\fireb\\OneDrive - Wentworth Institute of Technology\\Visual Studio Code\\Void Bot.js\\audio';
-const SHOULD_DOWNLOAD = true;
+const AUDIO_CACHE_DIR = path.join('cache', 'audio');
+const SHOULD_DOWNLOAD = false;
 
 // const DefaultFormatOptions = {
 //     quality: 'highestaudio',
@@ -736,7 +736,7 @@ function createDownloadPrepare(id: string, fn: (path: string) => Promise<string>
 
 function createStreamPrepare(fn: () => Promise<Readable>) {
     return async function prepare() {
-        return createAudioResource(await fn(), { inlineVolume: true });
+        return await fn().then(stream => createAudioResource(stream, DefaultCreateAudioResourceOptions));
     }
 }
 
@@ -770,40 +770,39 @@ function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
 }
 
 function downloadAudio(videoId: string, path: string) {
-    if (videoId in downloads) {
-        // return in progress downloads
-        return downloads[videoId];
-    } else {
-        // create new promise to resolve downloaded audio
-        return downloads[videoId] = new Promise<string>((resolve, reject) => {
-            // arguments
-            const args = [
-                '-f', 'bestaudio',
-                '-o', path,
-                '--quiet',
-                videoId.startsWith('-') ? videoURL(videoId) : videoId
-            ];
+    // return current download or create new promise to resolve downloaded audio
+    return downloads[videoId] ??= new Promise<string>((resolve, reject) => {
+        // arguments
+        const args = [
+            '-f', 'bestaudio',
+            '-o', path,
+            '--quiet',
+            videoId.startsWith('-') ? videoURL(videoId) : videoId
+        ];
 
-            // spawn yt-dlp
-            const proc = spawn('yt-dlp', args);
+        // spawn yt-dlp
+        const proc = spawn('./yt-dlp', args);
 
-            // log error messages
-            proc.stderr.on('data', data => {
-                console.error(data.toString());
-            });
+        proc.on('error', (err) => {
+            reject(err);
+        })
 
-            // resolve or reject on closes
-            proc.on('close', code => {
-                delete downloads[videoId];
-                if (code === 0) {
-                    resolve(path);
-                } else {
-                    rmSync(path);
-                    reject(`yt-dlp exited with code ${code}.`);
-                }
-            });
+        // log error messages
+        proc.stderr.on('data', data => {
+            process.stderr.write(data);
         });
-    }
+
+        // resolve or reject on closes
+        proc.on('close', code => {
+            delete downloads[videoId];
+            if (code === 0) {
+                resolve(path);
+            } else {
+                rmSync(path);
+                reject(`yt-dlp exited with code ${code}.`);
+            }
+        });
+    });
 }
 
 function getStreamingURL(videoId: string) {
