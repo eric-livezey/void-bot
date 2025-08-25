@@ -10,7 +10,6 @@ import { MusicResponsiveListItem, PlaylistVideo, Video } from 'youtubei.js/dist/
 import { VideoInfo } from 'youtubei.js/dist/src/parser/youtube';
 import { getInnertubeInstance } from './innertube';
 import { channelURL, Duration, generateVideoThumbnail, videoURL } from './utils';
-import ffmpegPath from 'ffmpeg-static';
 
 const AUDIO_CACHE_DIR = path.join('cache', 'audio');
 const SHOULD_DOWNLOAD = true;
