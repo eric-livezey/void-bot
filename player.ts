@@ -783,28 +783,31 @@ function downloadAudio(videoId: string, path: string) {
         const args = [
             '-f', 'bestaudio',
             '-o', path,
-            '--ffmpeg-location', ffmpegPath!,
             '--quiet',
             videoId.startsWith('-') ? videoURL(videoId) : videoId
         ];
 
         // spawn yt-dlp
-        const proc = spawn('./yt-dlp', args);
-
-        proc.on('error', (err) => {
-            reject(err);
-        })
+        const proc = spawn('yt-dlp', args);
 
         // log error messages
         proc.stderr.on('data', data => {
             process.stderr.write(data);
         });
 
+        proc.once('error', (err) => {
+            reject(err);
+        })
+
         // resolve or reject on closes
-        proc.on('close', code => {
+        proc.once('close', code => {
             delete downloads[videoId];
             if (code === 0) {
-                resolve(path);
+                if (existsSync(path)) {
+                    resolve(path);
+                } else {
+                    reject('yt-dlp exited without downloading anything');
+                }
             } else {
                 rmSync(path);
                 reject(`yt-dlp exited with code ${code}.`);
