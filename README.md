@@ -1,12 +1,13 @@
 # Void Bot
 
-Void bot is a discord bot which will play videos from YouTube is discord voice channels. Void bot is built in node using [discord.js](https://github.com/discordjs/discord.js). It also uses [YouTube.js](https://github.com/LuanRT/YouTube.js) and [ydl-core](https://github.com/distubejs/ytdl-core) to get youtube metadata and download videos respectively.
+Void bot is a discord bot which will play videos from YouTube is discord voice channels. Void bot is built in node using [discord.js](https://github.com/discordjs/discord.js). It also uses [YouTube.js](https://github.com/LuanRT/YouTube.js) and [yt-dlp](https://github.com/yt-dlp/yt-dlp) to get youtube metadata and download videos respectively.
 
 ## Usage
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/en/download).
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp?tab=readme-ov-file#installation)
 - You need to create a discord bot if you do not already have one you can create one [here](https://discord.com/developers/applications).
 
 ### Setup
