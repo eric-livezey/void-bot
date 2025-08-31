@@ -19,7 +19,7 @@
     "discord.js": "^14.22.1",
     "ffmpeg-static": "^5.2.0",
     "mathjs": "^14.6.0",
-    "sodium-native": "^5.0.6",
+    "sodium-native": "^5.0.7",
     "youtubei.js": "^15.0.1"
   },
   "devDependencies": {
