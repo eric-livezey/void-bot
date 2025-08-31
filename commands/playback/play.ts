@@ -171,7 +171,7 @@ export async function play(ctx: CommandContext<true>, { input, attachment }: { i
                 }
             }
         } else {
-            await ctx.reply('You must provice a link or search query.');
+            await ctx.reply('You must provide a link or search query.');
         }
     }
 }

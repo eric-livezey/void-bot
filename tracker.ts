@@ -1,5 +1,5 @@
 import { _Nullable, CategoryChannel, CategoryChannelResolvable, ChannelType, Client, Events, Guild, PermissionsBitField, Snowflake, VoiceChannel } from 'discord.js';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import Innertube from 'youtubei.js/agnostic';
 import { PageHeader } from 'youtubei.js/dist/src/parser/nodes';
@@ -9,7 +9,8 @@ import { getInnertubeInstance } from './innertube';
 /**
  * Path to the tracker cache file.
  */
-const FILE_PATH = path.join(__dirname, 'trackers.json');
+const TRACKER_CACHE = path.join('cache', 'trackers.json');
+const TRACKER_CACHE_DIR = path.dirname(TRACKER_CACHE);
 /**
  * Default interval at which resources are updated in milliseconds.
  */
@@ -90,8 +91,8 @@ type Trackers = {
 
 function getTrackers(client: Client) {
     const trackers = new Map<Snowflake, Map<ResourceType, Map<string, ResourceTracker>>>();
-    if (existsSync(FILE_PATH)) {
-        const buffer = readFileSync(FILE_PATH);
+    if (existsSync(TRACKER_CACHE)) {
+        const buffer = readFileSync(TRACKER_CACHE);
         const data = JSON.parse(buffer.toString('utf8')) as JSONTracker[];
         for (const json of data) {
             const { type, guildId, resourceId: id } = json;
@@ -110,7 +111,10 @@ function getTrackers(client: Client) {
 }
 
 function saveTrackers(trackers: ResourceTracker[]) {
-    writeFileSync(FILE_PATH, JSON.stringify(trackers.map(tracker => tracker.toJSON())));
+    if (!existsSync(TRACKER_CACHE_DIR)) {
+        mkdirSync(TRACKER_CACHE_DIR, { recursive: true });
+    }
+    writeFileSync(TRACKER_CACHE, JSON.stringify(trackers.map(tracker => tracker.toJSON())));
 }
 
 async function createCategoryChannel(tracker: TrackerIdentifier, guild: Guild, title: string) {

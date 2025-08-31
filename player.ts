@@ -255,7 +255,7 @@ export class Track<T = unknown> {
         this.prepare();
         this.audioResource = await this.resource;
         if (this.error != null || !this.isResolved()) {
-            throw this.error ?? new Error('the resource could not resolved to an AudioResource');
+            throw this.error ?? new Error('the resource could not be resolved to an AudioResource');
         }
         return this.resource as Promise<AudioResource<T>>;
     }
@@ -265,7 +265,6 @@ export class Track<T = unknown> {
      * @param fields Additional embed fields.
      */
     public toEmbed(...fields: RestOrArray<APIEmbedField>) {
-        new Date().getSeconds();
         const eb = new EmbedBuilder();
         eb.setTitle(this.title);
         if (this.url != null) {

@@ -24,7 +24,7 @@ export class Duration {
      * @param milliseconds the total number of milliseconds
      * @param includeMillis whether the millisecond should be included
      */
-    public static format(milliseconds: number, includeMillis?: boolean) {
+    public static format(milliseconds: number, includeMillis = false) {
         return new Duration(milliseconds).format(includeMillis);
     }
     /**
@@ -195,7 +195,7 @@ export class Duration {
      * 
      * @param includeMillis weather the millisecond should be included
      */
-    public format(includeMillis?: boolean) {
+    public format(includeMillis = false) {
         let str = `${zeroFill(this.getMinute())}:${zeroFill(this.getSecond())}`;
         if (includeMillis) {
             str += '.' + zeroFill(this.getMillisecond(), 3);
@@ -232,7 +232,7 @@ export function resolveSnowflake(input: string): Snowflake | null {
  * @returns The user ID or `null`.
  */
 export function resolveUserId(input: string): Snowflake | null {
-    return input.match(/^<@([0-9]{1,20})>$/)?.[1] ?? resolveSnowflake(input);
+    return input.match(/^<@\d{1,20}>$/)?.[1] ?? resolveSnowflake(input);
 }
 /**
  * Resolves a channel ID from a mention or snowflake.
@@ -241,7 +241,7 @@ export function resolveUserId(input: string): Snowflake | null {
  * @returns The channel ID or `null`.
  */
 export function resolveChannelId(input: string): Snowflake | null {
-    return input.match(/^<#([0-9]{1,20})>$/)?.[1] ?? resolveSnowflake(input);
+    return input.match(/^<#\d{1,20}>$/)?.[1] ?? resolveSnowflake(input);
 }
 /**
  * Resolves a role ID from a mention or snowflake.
@@ -250,7 +250,7 @@ export function resolveChannelId(input: string): Snowflake | null {
  * @returns The role ID or `null`.
  */
 export function resolveRoleId(input: string): Snowflake | null {
-    return input.match(/^<#([0-9]{1,20})>$/)?.[1] ?? resolveSnowflake(input);
+    return input.match(/^<#\d{1,20}>$/)?.[1] ?? resolveSnowflake(input);
 }
 export function createVoiceConnection(channel: VoiceBasedChannel) {
     const connection = joinVoiceChannel({
@@ -361,11 +361,9 @@ export function extractChannelId(url: URL): string | null {
  */
 export function resolveVideoId(input: string): string | null {
     const url = resolveURL(input);
-    if (url) {
-        const videoId = extractVideoId(url);
-        if (videoId != null && videoIdRegexp.test(videoId)) {
-            return videoId;
-        }
+    const videoId = url ? extractVideoId(url) : input;
+    if (videoId != null && videoIdRegexp.test(videoId)) {
+        return videoId;
     }
     return null;
 }
@@ -379,11 +377,9 @@ export function resolveVideoId(input: string): string | null {
  */
 export function resolveYouTubeChannelId(input: string): string | null {
     const url = resolveURL(input);
-    if (url) {
-        const channelId = extractChannelId(url);
-        if (channelId != null && channelIdRegexp.test(channelId)) {
-            return channelId;
-        }
+    const channelId = url ? extractChannelId(url) : input;
+    if (channelId != null && channelIdRegexp.test(channelId)) {
+        return channelId;
     }
     return null;
 }
@@ -394,8 +390,8 @@ export function resolveYouTubeChannelId(input: string): string | null {
  * @returns The channel ID or `null`.
  */
 export async function getYouTubeChannelId(input: string) {
+    let channelId = input;
     const url = resolveURL(input);
-    let channelId = null;
     if (url && isYouTubeURL(url)) {
         const [, a, b] = url.pathname.split('/');
         if (a === 'channel') {
