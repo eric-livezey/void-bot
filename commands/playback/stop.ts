@@ -12,7 +12,7 @@ export async function stop(ctx: CommandContext<true>) {
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak
+    PermissionsBitField.Flags.Speak,
 ]).freeze();
 
 export default {

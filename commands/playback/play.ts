@@ -178,7 +178,7 @@ export async function play(ctx: CommandContext<true>, { input, attachment }: { i
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak
+    PermissionsBitField.Flags.Speak,
 ]).freeze();
 
 export default {

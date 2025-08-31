@@ -27,7 +27,7 @@ export async function skip(ctx: CommandContext<true>, count?: number) {
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak
+    PermissionsBitField.Flags.Speak,
 ]).freeze();
 
 export default {

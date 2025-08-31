@@ -19,7 +19,7 @@ export async function remove(ctx: CommandContext<true>, index: number) {
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak
+    PermissionsBitField.Flags.Speak,
 ]).freeze();
 
 export default {

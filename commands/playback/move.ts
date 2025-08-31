@@ -32,7 +32,7 @@ export async function move(ctx: CommandContext<true>, source: number, destinatio
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak
+    PermissionsBitField.Flags.Speak,
 ]).freeze();
 
 export default {

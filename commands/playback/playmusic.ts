@@ -23,7 +23,7 @@ export async function playMusic(ctx: CommandContext<true>, query: string) {
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak
+    PermissionsBitField.Flags.Speak,
 ]).freeze();
 
 export default {
