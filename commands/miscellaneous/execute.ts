@@ -5,7 +5,7 @@ import { CommandContext, MessageContext } from '../../context';
 export async function execute(ctx: CommandContext, code: string) {
     try {
         const script = new Script(code);
-        script.runInThisContext();
+        script.runInNewContext({ ctx });
         await ctx.replyOrFollowUp('Code executed.');
     } catch (error) {
         if (error instanceof Error) {
