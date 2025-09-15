@@ -14,21 +14,18 @@
   "dependencies": {
     "@discordjs/opus": "^0.10.0",
     "@discordjs/voice": "^0.19.0",
-    "@distube/ytdl-core": "^4.16.12",
     "@snazzah/davey": "^0.1.6",
     "discord.js": "^14.22.1",
     "ffmpeg-static": "^5.2.0",
     "mathjs": "^14.7.0",
-    "sodium-native": "^5.0.7",
-    "youtubei.js": "^15.0.1"
+    "sodium-native": "^5.0.8",
+    "youtubei.js": "^15.1.1"
   },
   "devDependencies": {
-    "@eslint/js": "^9.34.0",
-    "@types/node": "^24.3.1",
     "@eslint/js": "^9.35.0",
-    "@types/node": "^24.3.0",
+    "@types/node": "^24.4.0",
     "eslint": "^9.35.0",
     "typescript": "^5.9.2",
-    "typescript-eslint": "^8.42.0"
+    "typescript-eslint": "^8.43.0"
   }
 }
