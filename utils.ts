@@ -370,7 +370,7 @@ export function resolveVideoId(input: string): string | null {
 /**
  * Resolves a channel ID from a string.
  * 
- * **NOTE**: This only works on links which contain the channel ID.
+ * **NOTE**: This only works on links which directly contain the channel ID.
  * 
  * @param input A string.
  * @returns The channel ID or `null`.
@@ -452,9 +452,9 @@ const ThumbnailQualityDimensions = new Map<ThumbnailQuality, Pick<Thumbnail, 'wi
  * Generate a thumbnail for a YouTube video.
  * 
  * @param videoId YouTube video ID.
- * @param quality Thumbnail quality. Default {@link ThumbnailQuality.MaxRes MaxRes}.
+ * @param quality Thumbnail quality. Default {@link ThumbnailQuality.Standard Standard}.
  */
-export function generateVideoThumbnail(videoId: string, quality = ThumbnailQuality.MaxRes): Thumbnail {
+export function generateVideoThumbnail(videoId: string, quality = ThumbnailQuality.Standard): Thumbnail {
     return {
         url: `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`,
         ...ThumbnailQualityDimensions.get(quality)!

@@ -13,6 +13,7 @@ import { channelURL, Duration, generateVideoThumbnail, videoURL } from './utils'
 
 const AUDIO_CACHE_DIR = path.join('cache', 'audio');
 const SHOULD_DOWNLOAD = true;
+const MAX_RETRIES = 5;
 
 // const DefaultFormatOptions = {
 //     quality: 'highestaudio',
@@ -768,7 +769,17 @@ function createStreamPrepare(id: string, fn: () => Promise<Readable>) {
 
 function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
     if (download) {
-        return createDownloadPrepare(videoId, (path: string) => downloadAudio(videoId, path));
+        return createDownloadPrepare(videoId, async (path: string) => {
+            let attempts = 0;
+            while (attempts < MAX_RETRIES) {
+                try {
+                    return await downloadAudio(videoId, path)
+                } catch {
+                    attempts++;
+                }
+            }
+            throw new Error('Audio download failed after 5 attempts.');
+        });
     } else {
         return createStreamPrepare(videoId, () => getStreamingURL(videoId).then(url => fetch(url)).then(res => Readable.fromWeb(res.body! as ReadableStream)));
     }
@@ -807,7 +818,9 @@ function downloadAudio(videoId: string, path: string) {
                     reject('yt-dlp exited without downloading anything');
                 }
             } else {
-                rmSync(path);
+                if (existsSync(path)) {
+                    rmSync(path);
+                }
                 reject(`yt-dlp exited with code ${code}.`);
             }
         });
@@ -817,7 +830,7 @@ function downloadAudio(videoId: string, path: string) {
 function getStreamingURL(videoId: string) {
     // resolve the streaming URL from yt-dlp
     return new Promise<string>((resolve, reject) => {
-        exec(`yt-dlp -f bestaudio --get-url ${videoId}`, (error, stdout) => {
+        exec(`yt-dlp -f bestaudio --get-url ${videoId.startsWith('-') ? videoURL(videoId) : videoId}`, (error, stdout) => {
             if (error) {
                 reject(error);
             } else {
