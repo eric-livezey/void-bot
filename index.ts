@@ -15,8 +15,8 @@ import { createVoiceConnection } from './utils';
 const INTENTS = new IntentsBitField([
     IntentsBitField.Flags.Guilds,
     IntentsBitField.Flags.GuildVoiceStates,
-    IntentsBitField.Flags.GuildMessages,
     IntentsBitField.Flags.GuildPresences,
+    IntentsBitField.Flags.GuildMessages,
     IntentsBitField.Flags.DirectMessages,
     IntentsBitField.Flags.MessageContent,
     IntentsBitField.Flags.DirectMessagePolls,
@@ -64,7 +64,7 @@ function _messageToCreateOptions(message: Message): MessageCreateOptions {
 
 // Add date and time to logs
 const log = console.log;
-console.log = (...data) => log(`[${new Date().toLocaleString()}]`, ...data);
+console.log = function (...data) { log(`[${new Date().toLocaleString()}]`, ...data) };
 
 // read commands
 const commands = new Collection<string, InteractionCommand>();

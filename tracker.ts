@@ -417,7 +417,7 @@ export class TrackerManager {
             this.update();
             this.timeout = setInterval(this.update.bind(this), delay);
         } else {
-            console.warn('[WARNING] start() was called more than once on a single TrackerManager without calling stop().');
+            console.warn('[WARNING]', 'start() was called more than once on a single TrackerManager without calling stop().');
         }
     }
     /**
@@ -427,7 +427,7 @@ export class TrackerManager {
         if (this.timeout?.close()) {
             this.timeout = null;
         } else {
-            console.warn('[WARNING] stop() was called on a TrackerManager while it was already stopped.');
+            console.warn('[WARNING]', 'stop() was called on a TrackerManager while it was already stopped.');
         }
     }
     /**
