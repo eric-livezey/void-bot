@@ -438,7 +438,7 @@ export class TrackerManager {
         for (const guildTrackers of this.trackers.values()) {
             for (const resourceTrackers of guildTrackers.values()) {
                 for (const tracker of resourceTrackers.values()) {
-                    promises.push(tracker.update().catch());
+                    promises.push(tracker.update().catch(() => { }));
                 }
             }
         }
