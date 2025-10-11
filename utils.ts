@@ -268,7 +268,6 @@ export function createVoiceConnection(channel: VoiceBasedChannel) {
             }
         }
         console.error('Rejoin failed after 5 attempts with the following error:');
-        connection.destroy();
         console.error(e);
     });
     return connection;

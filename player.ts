@@ -773,7 +773,7 @@ function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
             let attempts = 0;
             while (attempts < MAX_RETRIES) {
                 try {
-                    return await downloadAudio(videoId, path)
+                    return await downloadAudio(videoId, path);
                 } catch {
                     attempts++;
                 }
@@ -804,8 +804,8 @@ function downloadAudio(videoId: string, path: string) {
             process.stderr.write(data);
         });
 
-        proc.once('error', (err) => {
-            reject(err);
+        proc.once('error', (error) => {
+            reject(error);
         })
 
         // resolve or reject on closes
@@ -834,7 +834,7 @@ function getStreamingURL(videoId: string) {
             if (error) {
                 reject(error);
             } else {
-                resolve(stdout.trim())
+                resolve(stdout.trim());
             }
         });
     });

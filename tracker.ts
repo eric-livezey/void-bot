@@ -302,7 +302,7 @@ class VideoTracker extends ResourceTracker {
         return { title, detail: viewCount != null ? `${formatViewCount(viewCount)} views` : undefined };
     }
     public static fromJSON(client: Client, json: JSONTracker) {
-        return new this(client, json.guildId, json.resourceId, json.categoryChannelId, json.detailChannelId,);
+        return new this(client, json.guildId, json.resourceId, json.categoryChannelId, json.detailChannelId);
     }
 }
 
@@ -321,12 +321,12 @@ class ChannelTracker extends ResourceTracker {
         return { title: channel.metadata.title, detail: channel.header?.content?.metadata?.metadata_rows[1]?.metadata_parts?.[0]?.text?.toString() };
     }
     public static fromJSON(client: Client, json: JSONTracker) {
-        return new this(client, json.guildId, json.resourceId, json.categoryChannelId, json.detailChannelId,);
+        return new this(client, json.guildId, json.resourceId, json.categoryChannelId, json.detailChannelId);
     }
 }
 
 /**
- * Map of to their related resource IDs
+ * Map of channel IDs to their related resource identifiers.
  */
 const CHANNEL_MAP = new Map<Snowflake, TrackerIdentifier>();
 
@@ -410,7 +410,7 @@ export class TrackerManager {
     /**
      * Start tracking.
      * 
-     * @param delay the delay at which to update trackers in milliseconds
+     * @param delay the delay at which to update trackers in milliseconds.
      */
     public start(delay = DefaultDelay) {
         if (!this.timeout) {
@@ -421,7 +421,7 @@ export class TrackerManager {
         }
     }
     /**
-     * Stops tracking;
+     * Stops tracking.
      */
     public stop() {
         if (this.timeout?.close()) {
