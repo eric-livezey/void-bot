@@ -19,7 +19,7 @@
     "ffmpeg-static": "^5.2.0",
     "mathjs": "^14.8.1",
     "sodium-native": "^5.0.9",
-    "youtubei.js": "^15.1.1"
+    "youtubei.js": "^16.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
