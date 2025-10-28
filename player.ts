@@ -534,7 +534,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
      */
     public async enqueue(track: Track) {
         if (!this.isPlaying()) {
-            return await this.play(track).then(() => 0).catch(() => -1);
+            return this.play(track).then(() => 0).catch(() => -1);
         }
         return this.queue.push(track);
     }
@@ -741,7 +741,7 @@ function createStreamPrepare(id: string, fn: () => Promise<Readable>) {
             // use prior downloaded tracks even in streams as they are more reliable
             return createAudioResource(file, DefaultCreateAudioResourceOptions);
         } else {
-            return await fn().then(stream => createAudioResource(stream, DefaultCreateAudioResourceOptions));
+            return fn().then(stream => createAudioResource(stream, DefaultCreateAudioResourceOptions));
         }
     }
 }
@@ -769,11 +769,11 @@ function createStreamPrepare(id: string, fn: () => Promise<Readable>) {
 
 function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
     if (download) {
-        return createDownloadPrepare(videoId, async (path: string) => {
+        return createDownloadPrepare(videoId, (path: string) => {
             let attempts = 0;
             while (attempts < MAX_RETRIES) {
                 try {
-                    return await downloadAudio(videoId, path);
+                    return downloadAudio(videoId, path);
                 } catch {
                     attempts++;
                 }

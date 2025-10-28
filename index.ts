@@ -42,7 +42,7 @@ function _pollToOptions(poll: Poll): PollData {
             text: answer.text ?? '',
             emoji: answer.emoji?.identifier ?? undefined
         })),
-        duration: Math.ceil((poll.expiresTimestamp - Date.now()) / 3.6e+6),
+        duration: poll.expiresTimestamp ? Math.ceil((poll.expiresTimestamp - Date.now()) / 3.6e+6) : 24,
         allowMultiselect: poll.allowMultiselect,
         layoutType: poll.layoutType
     }
