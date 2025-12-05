@@ -230,38 +230,38 @@ abstract class ResourceTracker {
     public async update() {
         let guild, { categoryChannel, detailChannel } = await this.fetchChannels();
         const { title, detail } = await this.fetchDetailsAndUpdateCache();
-        // if neither channel is resolved, create channel
         if (!categoryChannel && !detailChannel) {
+            // Neither channel was found, so create them
             ({ categoryChannel, detailChannel } = await this.createChannels({
                 guild: guild ??= await this.client.guilds.fetch(this.guildId),
                 title,
                 detail,
             }));
         }
-        // if the category channel is not resolved, create it
         if (!categoryChannel) {
+            // The category channel was not found, so create it
             categoryChannel = await this.createCategoryChannel({
                 guild: guild ??= await this.client.guilds.fetch(this.guildId),
                 title,
             });
         }
-        // if the detail channel is not resolved, create it
         if (!detailChannel) {
+            // The detail channel was not found, so create it
             detailChannel = await this.createDetailChannel(categoryChannel, {
                 guild: guild ??= await this.client.guilds.fetch(this.guildId),
                 detail,
             });
         }
-        // if the detail channel is not a child of the category channel, move it
         if (detailChannel.parentId !== categoryChannel.id) {
+            // The detail channel is not a parent of the category channel, so move it
             await detailChannel.edit({ parent: categoryChannel });
         }
-        // if the category channel's name is not the current title, change it
         if (title != null && categoryChannel.name !== title) {
+            // The category channel's name is not equal to the current title, so update it
             await categoryChannel.setName(title);
         }
-        // if the detail channel's name is not the current detail, change it
         if (detail != null && detailChannel.name !== detail) {
+            // The detail channel's is name is not equal to the current detail, so update it
             await detailChannel.setName(detail);
         }
     }
@@ -466,12 +466,11 @@ export class TrackerManager {
     }
     public async addVideoTracker(guildId: string, videoId: string) {
         let tracker = this.getVideoTracker(guildId, videoId);
-        if (tracker) {
-            return tracker;
+        if (!tracker) {
+            tracker = new VideoTracker(this.client, guildId, videoId);
+            await tracker.update();
+            this.set(guildId, ResourceType.Video, videoId, tracker);
         }
-        tracker = new VideoTracker(this.client, guildId, videoId);
-        await tracker.update();
-        this.set(guildId, ResourceType.Video, videoId, tracker);
         return tracker;
     }
     public async removeVideoTracker(guildId: string, videoId: string) {
@@ -485,12 +484,11 @@ export class TrackerManager {
     }
     public async addChannelTracker(guildId: string, videoId: string) {
         let tracker = this.getChannelTracker(guildId, videoId);
-        if (tracker) {
-            return tracker;
+        if (!tracker) {
+            tracker = new ChannelTracker(this.client, guildId, videoId);
+            await tracker.update();
+            this.set(guildId, ResourceType.Channel, videoId, tracker);
         }
-        tracker = new ChannelTracker(this.client, guildId, videoId);
-        await tracker.update();
-        this.set(guildId, ResourceType.Channel, videoId, tracker);
         return tracker;
     }
     public async removeChannelTracker(guildId: string, videoId: string) {

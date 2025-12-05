@@ -68,7 +68,7 @@ export async function connectToSpeak(ctx: CommandContext<true>) {
             createVoiceConnection(channel);
             return true;
         } else {
-            await ctx.reply(`I don't have suffucient permissions to connect to ${channelMention(channel.id)}.`);
+            await ctx.reply(`I don't have sufficient permissions to connect to ${channelMention(channel.id)}.`);
             return false;
         }
     } else {

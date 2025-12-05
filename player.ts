@@ -1,4 +1,4 @@
-import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
+import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, CreateAudioResourceOptions, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 import { APIEmbedField, EmbedBuilder, RestOrArray, Snowflake } from 'discord.js';
 import { exec, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -161,7 +161,7 @@ export class Track<T = unknown> {
         return Track.fromVideoInfo(info);
     }
     /**
-     * Creates a track fomr a YouTube video search result.
+     * Creates a track from a YouTube video search result.
      * 
      * @param result A YouTube video search result.
      */
@@ -718,7 +718,7 @@ const downloads: Record<string, Promise<string>> = {};
 
 const DefaultCreateAudioResourceOptions = {
     inlineVolume: true
-};
+} satisfies CreateAudioResourceOptions<null>;
 
 function createDownloadPrepare(id: string, fn: (path: string) => Promise<string>) {
     if (!existsSync(AUDIO_CACHE_DIR)) {
