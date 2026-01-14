@@ -1,4 +1,4 @@
-import { joinVoiceChannel } from '@discordjs/voice';
+import { joinVoiceChannel, VoiceConnection } from '@discordjs/voice';
 import { Snowflake, VoiceBasedChannel } from 'discord.js';
 import { getInnertubeInstance } from './innertube';
 
@@ -24,13 +24,13 @@ export class Duration {
      * @param milliseconds the total number of milliseconds
      * @param includeMillis whether the millisecond should be included
      */
-    public static format(milliseconds: number, includeMillis = false) {
+    public static format(milliseconds: number, includeMillis = false): string {
         return new Duration(milliseconds).format(includeMillis);
     }
     /**
      * Returns the total number of milliseconds.
      */
-    public getMilliseconds() {
+    public getMilliseconds(): number {
         return this.milliseconds;
     }
     /**
@@ -38,13 +38,13 @@ export class Duration {
      * 
      * @param milliseconds the total number of milliseconds
      */
-    public setMilliseconds(milliseconds: number) {
+    public setMilliseconds(milliseconds: number): void {
         this.milliseconds = Math.floor(milliseconds);
     }
     /**
      * Returns the total number of seconds.
      */
-    public getSeconds() {
+    public getSeconds(): number {
         return this.getMilliseconds() / 1000;
     }
     /**
@@ -52,13 +52,13 @@ export class Duration {
      * 
      * @param seconds the total number of seconds
      */
-    public setSeconds(seconds: number) {
+    public setSeconds(seconds: number): void {
         this.setMilliseconds(seconds * 1000);
     }
     /**
      * Returns the total number of minutes.
      */
-    public getMinutes() {
+    public getMinutes(): number {
         return this.getMilliseconds() / 60000;
     }
     /**
@@ -66,13 +66,13 @@ export class Duration {
      * 
      * @param minutes the total number of minutes
      */
-    public setMinutes(minutes: number) {
+    public setMinutes(minutes: number): void {
         this.setMilliseconds(minutes * 60000);
     }
     /**
      * Returns the total number of hours.
      */
-    public getHours() {
+    public getHours(): number {
         return this.getMilliseconds() / 3.6e+6;
     }
     /**
@@ -80,13 +80,13 @@ export class Duration {
      * 
      * @param hours the total number of hours
      */
-    public setHours(hours: number) {
+    public setHours(hours: number): void {
         this.setMilliseconds(hours * 3.6e+6);
     }
     /**
      * Returns the total number of days.
      */
-    public getDays() {
+    public getDays(): number {
         return this.getMilliseconds() / 8.64e+7;
     }
     /**
@@ -94,13 +94,13 @@ export class Duration {
      * 
      * @param days the total number of days
      */
-    public setDays(days: number) {
+    public setDays(days: number): void {
         this.setMilliseconds(days * 8.64e+7);
     }
     /**
      * Returns the millisecond.
      */
-    public getMillisecond() {
+    public getMillisecond(): number {
         return this.getMilliseconds() % 1000;
     }
     /**
@@ -108,13 +108,13 @@ export class Duration {
      * 
      * @param millisecond the millisecond
      */
-    public setMillisecond(millisecond: number) {
+    public setMillisecond(millisecond: number): void {
         this.setDay(this.getDay(), this.getHour(), this.getMinute(), this.getSecond(), millisecond);
     }
     /**
      * Returns the second.
      */
-    public getSecond() {
+    public getSecond(): number {
         return Math.floor(this.getMilliseconds() % 60000 / 1000);
     }
     /**
@@ -123,13 +123,13 @@ export class Duration {
      * @param second the second
      * @param millisecond the millisecond
      */
-    public setSecond(second: number, millisecond?: number) {
+    public setSecond(second: number, millisecond?: number): void {
         this.setDay(this.getDay(), this.getHour(), this.getMinute(), second, millisecond);
     }
     /**
      * Returns the minute.
      */
-    public getMinute() {
+    public getMinute(): number {
         return Math.floor(this.getMilliseconds() % 3.6e+6 / 60000);
     }
     /**
@@ -139,14 +139,14 @@ export class Duration {
      * @param second the second
      * @param millisecond the millisecond
      */
-    public setMinute(minute: number, second?: number, millisecond?: number) {
+    public setMinute(minute: number, second?: number, millisecond?: number): void {
         this.setDay(this.getDay(), this.getHour(), minute, second, millisecond);
 
     }
     /**
      * Returns the hour.
      */
-    public getHour() {
+    public getHour(): number {
         return Math.floor(this.getMilliseconds() % 8.64e+7 / 3.6e+6);
     }
     /**
@@ -157,13 +157,13 @@ export class Duration {
      * @param second the second
      * @param millisecond the millisecond
      */
-    public setHour(hour: number, minute?: number, second?: number, millisecond?: number) {
+    public setHour(hour: number, minute?: number, second?: number, millisecond?: number): void {
         this.setDay(this.getDay(), hour, minute, second, millisecond);
     }
     /**
      * Returns the day.
      */
-    public getDay() {
+    public getDay(): number {
         return Math.floor(this.getDays());
     }
     /**
@@ -175,7 +175,7 @@ export class Duration {
      * @param second the second
      * @param millisecond the millisecond
      */
-    public setDay(day: number, hour?: number, minute?: number, second?: number, millisecond?: number) {
+    public setDay(day: number, hour?: number, minute?: number, second?: number, millisecond?: number): void {
         if (hour === undefined) {
             hour = this.getHour();
         }
@@ -195,7 +195,7 @@ export class Duration {
      * 
      * @param includeMillis weather the millisecond should be included
      */
-    public format(includeMillis = false) {
+    public format(includeMillis = false): string {
         let str = `${zeroFill(this.getMinute())}:${zeroFill(this.getSecond())}`;
         if (includeMillis) {
             str += '.' + zeroFill(this.getMillisecond(), 3);
@@ -212,7 +212,7 @@ export class Duration {
         return this.format();
     }
 }
-function zeroFill(value: number, maxLength = 2) {
+function zeroFill(value: number, maxLength = 2): string {
     return value.toString().padStart(maxLength, '0');
 }
 
@@ -252,7 +252,7 @@ export function resolveChannelId(input: string): Snowflake | null {
 export function resolveRoleId(input: string): Snowflake | null {
     return input.match(/^<#\d{1,20}>$/)?.[1] ?? resolveSnowflake(input);
 }
-export function createVoiceConnection(channel: VoiceBasedChannel) {
+export function createVoiceConnection(channel: VoiceBasedChannel): VoiceConnection {
     const connection = joinVoiceChannel({
         channelId: channel.id,
         guildId: channel.guildId,
@@ -313,7 +313,7 @@ export function extractVideoId(url: URL): string | null {
         const [, a, b, c] = url.pathname.split('/');
         if (c == null) {
             if (a === 'watch') {
-                return b == null ? url.searchParams.get('v') : b ?? null;
+                return b ?? url.searchParams.get('v');
             }
             if (a === 'shorts') {
                 return b;
@@ -388,7 +388,7 @@ export function resolveYouTubeChannelId(input: string): string | null {
  * @param input A string.
  * @returns The channel ID or `null`.
  */
-export async function getYouTubeChannelId(input: string) {
+export async function getYouTubeChannelId(input: string): Promise<string | null> {
     let channelId = input;
     const url = resolveURL(input);
     if (url && isYouTubeURL(url)) {
@@ -406,17 +406,17 @@ export async function getYouTubeChannelId(input: string) {
     return channelId != null && channelIdRegexp.test(channelId) ? channelId : null;
 
 }
-export function videoURL(videoId: string, short = false) {
+export function videoURL(videoId: string, short = false): string {
     if (short) {
         return `https://youtu.be/${encodeURIComponent(videoId)}`;
     } else {
         return `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
     }
 }
-export function playlistURL(playlistId: string) {
+export function playlistURL(playlistId: string): string {
     return `https://www.youtube.com/playlist?list=${encodeURIComponent(playlistId)}`;
 }
-export function channelURL(channelId: string) {
+export function channelURL(channelId: string): string {
     return `https://www.youtube.com/channel/${encodeURIComponent(channelId)}`;
 }
 export interface Thumbnail {
@@ -448,14 +448,23 @@ const ThumbnailQualityDimensions = new Map<ThumbnailQuality, Pick<Thumbnail, 'wi
     [ThumbnailQuality.MaxRes, { width: 1280, height: 720 }],
 ]);
 /**
- * Generate a thumbnail for a YouTube video.
+ * Generate a thumbnail URL for a YouTube video with a specific quality.
+ *
+ * @param videoId YouTube video ID.
+ * @param quality Thumbnail quality. Default {@link ThumbnailQuality.Standard Standard}.
+ */
+export function generateVideoThumbnailUrl(videoId: string, quality: ThumbnailQuality = ThumbnailQuality.Standard): string {
+    return `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/${encodeURIComponent(quality)}.jpg`;
+}
+/**
+ * Generate a thumbnail for a YouTube video with a specific quality.
  * 
  * @param videoId YouTube video ID.
  * @param quality Thumbnail quality. Default {@link ThumbnailQuality.Standard Standard}.
  */
-export function generateVideoThumbnail(videoId: string, quality = ThumbnailQuality.Standard): Thumbnail {
+export function generateVideoThumbnail(videoId: string, quality: ThumbnailQuality = ThumbnailQuality.Standard): Thumbnail {
     return {
-        url: `https://i.ytimg.com/vi/${videoId}/${quality}.jpg`,
+        url: generateVideoThumbnailUrl(videoId, quality),
         ...ThumbnailQualityDimensions.get(quality)!
     };
 }
@@ -465,6 +474,6 @@ export function generateVideoThumbnail(videoId: string, quality = ThumbnailQuali
  * @param thumbnails A list of thumbnails.
  * @returns The highest resolution thumbnail.
  */
-export function bestThumbnail(thumbnails: Thumbnail[]) {
+export function bestThumbnail(thumbnails: Thumbnail[]): Thumbnail {
     return thumbnails.reduce((best, current) => current.width * current.height > best.height * best.width ? current : best);
 }

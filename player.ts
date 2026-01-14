@@ -1,5 +1,5 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, CreateAudioResourceOptions, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
-import { APIEmbedField, EmbedBuilder, RestOrArray, Snowflake } from 'discord.js';
+import { APIEmbed, APIEmbedField, EmbedBuilder, RestOrArray, Snowflake } from 'discord.js';
 import { exec, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
@@ -9,15 +9,11 @@ import { ReadableStream } from 'node:stream/web';
 import { MusicResponsiveListItem, PlaylistVideo, Video } from 'youtubei.js/dist/src/parser/nodes';
 import { VideoInfo } from 'youtubei.js/dist/src/parser/youtube';
 import { getInnertubeInstance } from './innertube';
-import { channelURL, Duration, generateVideoThumbnail, videoURL } from './utils';
+import { channelURL, Duration, generateVideoThumbnailUrl, videoURL } from './utils';
 
 const AUDIO_CACHE_DIR = path.join('cache', 'audio');
 const SHOULD_DOWNLOAD = true;
 const MAX_RETRIES = 5;
-
-// const DefaultFormatOptions = {
-//     quality: 'highestaudio',
-// } as const satisfies chooseFormatOptions;
 
 export interface TrackAuthor {
     /**
@@ -43,10 +39,12 @@ export interface TrackOptions {
     }
 }
 
+export type PrepareFunction<M = null> = () => Promise<AudioResource<M>>;
+
 /**
  * Represents a track to played by a player.
  */
-export class Track<T = unknown> {
+export class Track<M = null> {
     /**
      * The title of the track.
      */
@@ -67,13 +65,13 @@ export class Track<T = unknown> {
      * The track's author's info.
      */
     public readonly author: TrackAuthor;
-    private audioResource: Promise<AudioResource<T> | null> | AudioResource<T> | null;
+    private audioResource: Promise<AudioResource<M> | null> | AudioResource<M> | null;
     private error: Error | null;
-    private readonly preparefn: () => Promise<AudioResource<T>> | AudioResource<T>;
+    private readonly preparefn: PrepareFunction<M>;
     /**
      * Returns the current state of the {@link AudioResource} object associated with the track.
      */
-    public get resource() {
+    public get resource(): Promise<AudioResource<M> | null> | AudioResource<M> | null {
         return this.audioResource;
     }
     /**
@@ -81,14 +79,12 @@ export class Track<T = unknown> {
      * @param title The title of the track.
      * @param details Track details.
      */
-    public constructor(preparefn: () => Promise<AudioResource<T>>, title: string, details?: TrackOptions) {
+    public constructor(preparefn: PrepareFunction<M>, title: string, details?: TrackOptions) {
         this.audioResource = null;
         this.error = null;
         this.preparefn = preparefn;
         this.title = title;
-        if (details == null) {
-            details = {};
-        }
+        details ??= {};
         this.url = details.url ?? null;
         this.thumbnail = details.thumbnail ?? null;
         this.duration = details.duration ?? null;
@@ -105,7 +101,7 @@ export class Track<T = unknown> {
      * @param title The title of the track.
      * @param details Track details.
      */
-    public static fromURL(url: URL | string, title?: string, details?: TrackOptions) {
+    public static fromURL(url: URL | string, title?: string, details?: TrackOptions): Track {
         url = new URL(url);
         const prepare = async () => {
             const res = await fetch(url);
@@ -118,65 +114,59 @@ export class Track<T = unknown> {
             const stream = Readable.fromWeb(res.body as ReadableStream);
             return createAudioResource(stream, { inlineVolume: true })
         };
-        if (title == null)
-            title = url.pathname.substring(url.pathname.lastIndexOf('/') + 1) || 'Unknown Title';
-        if (details == null)
-            details = {};
-        if (details.url == null)
-            details.url = url.toString();
+        title ??= url.pathname.substring(url.pathname.lastIndexOf('/') + 1) || 'Unknown Title';
+        details ??= {};
+        details.url ??= url.toString();
         return new Track(prepare, title, details);
-    }
-    /**
-     * Creates a track from an innertube video info object.
-     *
-     * @param info An innertube video info object.
-     */
-    public static fromVideoInfo(info: VideoInfo) {
-        // const { videoDetails, videoDetails: { videoId } } = info;
-        // const prepare = createYtdlVideoInfoPrepare(info);
-        const { basic_info: videoDetails } = info;
-        const videoId = videoDetails.id!;
-        const prepare = createYtDlpPrepare(videoId);
-        const details = {
-            url: videoURL(videoId, true),
-            thumbnail: generateVideoThumbnail(videoId).url,
-            duration: info.basic_info.duration! * 1000,
-            author: {
-                name: videoDetails.author!,
-                url: channelURL(videoDetails.channel!.id!),
-            }
-        };
-        return new Track(prepare, videoDetails.title!, details);
     }
     /**
      * Creates a track from a YouTube video ID.
      *
      * @param videoId A YouTube video ID.
      */
-    public static async fromVideoId(videoId: string) {
+    public static async fromVideoId(videoId: string): Promise<Track> {
         const innertube = await getInnertubeInstance();
-        // const info = await (SHOULD_DOWNLOAD && existsSync(path.join(AUDIO_CACHE_DIR, `${videoId}.webm`)) ? ytdl.getBasicInfo(videoId) : ytdl.getInfo(videoId));
         const info = await innertube.getBasicInfo(videoId);
         info.basic_info.id ??= videoId;
         return Track.fromVideoInfo(info);
+    }
+    /**
+     * Creates a track from an innertube video info object.
+     *
+     * @param info An innertube video info object.
+     */
+    public static fromVideoInfo(info: VideoInfo): Track {
+        const { basic_info: videoDetails } = info;
+        const videoId = videoDetails.id!;
+        const prepare = createYtDlpPrepare(videoId);
+        const details = {
+            url: videoURL(videoId, true),
+            thumbnail: generateVideoThumbnailUrl(videoId),
+            duration: info.basic_info.duration! * 1000,
+            author: {
+                name: videoDetails.author!,
+                url: channelURL(videoDetails.channel!.id!),
+            }
+        } satisfies TrackOptions;
+        return new Track(prepare, videoDetails.title!, details);
     }
     /**
      * Creates a track from a YouTube video search result.
      * 
      * @param result A YouTube video search result.
      */
-    public static fromSearchResult(result: Video) {
+    public static fromSearchResult(result: Video): Track {
         const videoId = result.video_id;
         const prepare = createYtDlpPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
-            thumbnail: generateVideoThumbnail(videoId).url,
+            thumbnail: generateVideoThumbnailUrl(videoId),
             duration: result.duration.seconds * 1000,
             author: {
                 name: result.author.name,
                 url: result.author.url,
             },
-        };
+        } satisfies TrackOptions;
         return new Track(prepare, result.title.toString(), details);
     }
     /**
@@ -184,18 +174,18 @@ export class Track<T = unknown> {
      *
      * @param item A playlist item.
      */
-    public static fromPlaylistItem(item: PlaylistVideo) {
+    public static fromPlaylistItem(item: PlaylistVideo): Track {
         const videoId = item.id;
         const prepare = createYtDlpPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
-            thumbnail: generateVideoThumbnail(videoId).url,
+            thumbnail: generateVideoThumbnailUrl(videoId),
             duration: item.duration.seconds * 1000,
             author: {
                 name: item.author.name,
                 url: item.author.url,
             },
-        };
+        } satisfies TrackOptions;
         return new Track(prepare, item.title.toString(), details);
     }
     /**
@@ -205,67 +195,67 @@ export class Track<T = unknown> {
      *
      * @param item An album item.
      */
-    public static fromAlbumItem(item: MusicResponsiveListItem) {
+    public static fromAlbumItem(item: MusicResponsiveListItem): Track {
         const videoId = item.id!;
         const prepare = createYtDlpPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
-            thumbnail: generateVideoThumbnail(videoId).url,
+            thumbnail: generateVideoThumbnailUrl(videoId),
             duration: item.duration!.seconds * 1000,
             author: {
                 name: item.artists![0].name,
                 url: item.artists![0].endpoint?.toURL(),
             },
-        };
+        } satisfies TrackOptions;
         return new Track(prepare, item.title!.toString(), details);
     }
     /**
      * Returns whether the track has been resolved successfully.
      */
-    public isResolved(): this is this & { resource: AudioResource<T>; } {
+    public isResolved(): this is this & { resource: AudioResource<M>; } {
         return this.resource instanceof AudioResource;
     }
     /**
      * Returns whether the track has been prepared.
      */
-    public isPrepared(): this is this & { resource: Promise<AudioResource<T> | null> | AudioResource<T> } {
+    public isPrepared(): this is this & { resource: Promise<AudioResource<M> | null> | AudioResource<M> } {
         return this.audioResource != null;
     }
     /**
      * Reset the track which allows the audio resource to be created again.
      */
-    public reset() {
+    public reset(): void {
         this.audioResource = null;
         this.error = null;
     }
     /**
      * Prepare the audio resource. If the resource is already being prepared, nothing will happen.
      */
-    public prepare() {
+    public prepare(): void {
         if (!this.isPrepared()) {
-            this.audioResource = new Promise<AudioResource<T>>(resolve => { resolve(this.preparefn()) }).catch(error => { this.error = error; return null; });
+            this.audioResource = new Promise<AudioResource<M>>(resolve => { resolve(this.preparefn()) }).catch(error => { this.error = error; return null; });
         }
     }
     /**
      * Resolve the audio resource.
      */
-    public async resolve() {
+    public async resolve(): Promise<AudioResource<M>> {
         if (this.isResolved()) {
-            return this.resource as Promise<AudioResource<T>>;
+            return this.resource as Promise<AudioResource<M>>;
         }
         this.prepare();
         this.audioResource = await this.resource;
         if (this.error != null || !this.isResolved()) {
             throw this.error ?? new Error('the resource could not be resolved to an AudioResource');
         }
-        return this.resource as Promise<AudioResource<T>>;
+        return this.resource as AudioResource<M>;
     }
     /**
      * Returns a APIEmbed representation of the track.
      *
      * @param fields Additional embed fields.
      */
-    public toEmbed(...fields: RestOrArray<APIEmbedField>) {
+    public toEmbed(...fields: RestOrArray<APIEmbedField>): APIEmbed {
         const eb = new EmbedBuilder();
         eb.setTitle(this.title);
         if (this.url != null) {
@@ -293,44 +283,44 @@ export class Track<T = unknown> {
 /**
  * Represents a queue of tracks. Ensures that the first track is the queue is always prepared.
  */
-export class Queue implements Iterable<Track> {
-    private readonly list: Track[];
+export class Queue implements Iterable<Track<unknown>> {
+    private readonly list: Track<unknown>[];
     public constructor() {
         this.list = [];
     }
-    public get length() {
+    public get length(): number {
         return this.list.length;
     }
-    public get duration() {
+    public get duration(): number {
         return this.list.reduce((acc, track) => acc + (track.duration ?? 0), 0);
     }
-    public [Symbol.iterator]() {
+    public [Symbol.iterator](): Iterator<Track<unknown>, BuiltinIteratorReturn, unknown> {
         return this.values();
     }
-    public values() {
+    public values(): ArrayIterator<Track<unknown>> {
         return this.list.values();
     }
-    public push(value: Track) {
+    public push(value: Track): number {
         const length = this.list.push(value);
         if (this.list.length === 1) {
             value.prepare();
         }
         return length;
     }
-    public shift() {
+    public shift(): Track<unknown> | undefined {
         const value = this.list.shift();
         if (this.list.length > 0) {
             this.list[0].prepare();
         }
-        return value as Track | undefined;
+        return value;
     }
-    public get(index: number) {
+    public get(index: number): Track<unknown> {
         if (index < 0 || index >= this.list.length) {
             throw new RangeError(`index ${index} is out of bounds`);
         }
         return this.list[index];
     }
-    public set(index: number, value: Track) {
+    public set(index: number, value: Track<unknown>): void {
         if (index < 0 || index >= this.list.length) {
             throw new RangeError(`index ${index} is out of bounds`);
         }
@@ -339,7 +329,7 @@ export class Queue implements Iterable<Track> {
             value.prepare();
         }
     }
-    public remove(index: number) {
+    public remove(index: number): Track<unknown> {
         if (index < 0 || index >= this.list.length) {
             throw new RangeError(`index ${index} is out of bounds`);
         }
@@ -349,7 +339,7 @@ export class Queue implements Iterable<Track> {
         }
         return value;
     }
-    public move(source: number, destination: number) {
+    public move(source: number, destination: number): void {
         if (source < 0 || source >= this.list.length) {
             throw new RangeError(`index ${source} is out of bounds`);
         }
@@ -362,7 +352,7 @@ export class Queue implements Iterable<Track> {
             this.list[0].prepare();
         }
     }
-    public splice(start: number, deleteCount?: number) {
+    public splice(start: number, deleteCount?: number): Track<unknown>[] {
         // explicitly passing undefined for deleteCount in Array.splice is converted to 0
         const part = this.list.splice(start, deleteCount ?? Infinity);
         if ((deleteCount == null || deleteCount > 0) && this.length > 0) {
@@ -370,10 +360,10 @@ export class Queue implements Iterable<Track> {
         }
         return part;
     }
-    public clear() {
+    public clear(): void {
         this.splice(0);
     }
-    public shuffle() {
+    public shuffle(): void {
         let currentIndex = this.list.length, randomIndex = -1;
         while (currentIndex > 0) {
             randomIndex = Math.floor(Math.random() * currentIndex);
@@ -403,7 +393,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
      */
     public loop: boolean;
     private static readonly cache = new Map<Snowflake, Player>();
-    private nowPlayingTrack: Track | null;
+    private nowPlayingTrack: Track<unknown> | null;
     private volume: number;
     private subscription: PlayerSubscription | null;
     private connection: VoiceConnection | null;
@@ -411,7 +401,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
     /**
      * The currently playing track.
      */
-    public get nowPlaying() {
+    public get nowPlaying(): Track<unknown> | null {
         return this.nowPlayingTrack;
     }
 
@@ -441,7 +431,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
      *
      * @param guildId A guild ID.
      */
-    public static of(guildId: Snowflake) {
+    public static of(guildId: Snowflake): Player {
         if (!this.cache.has(guildId)) {
             const player = new Player(guildId);
             player.on('error', error => {
@@ -454,7 +444,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
     /**
      * Returns whether the player is ready to play audio.
      */
-    public isReady() {
+    public isReady(): boolean {
         const connection = this.getConnection();
         return connection != null && connection.state.status !== VoiceConnectionStatus.Destroyed && connection.state.status !== VoiceConnectionStatus.Disconnected;
     }
@@ -467,13 +457,13 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
     /**
      * Returns whether the player is paused.
      */
-    public isPaused() {
+    public isPaused(): boolean {
         return this.audioPlayer.state.status === AudioPlayerStatus.Paused;
     }
     /**
      * Returns the volume of the player.
      */
-    public getVolume() {
+    public getVolume(): number {
         return this.volume;
     }
     /**
@@ -481,7 +471,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
      *
      * @param value A percentage.
      */
-    public setVolume(value: number) {
+    public setVolume(value: number): void {
         if (value < 0) {
             throw new RangeError('volume must be a positive number');
         }
@@ -504,7 +494,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
      * 
      * @param value 
      */
-    public setConnection(value: VoiceConnection | null) {
+    public setConnection(value: VoiceConnection | null): void {
         if (this.subscription != null) {
             this.subscription.unsubscribe();
         }
@@ -532,7 +522,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
      *
      * @param track A track.
      */
-    public async enqueue(track: Track) {
+    public async enqueue(track: Track): Promise<number> {
         if (!this.isPlaying()) {
             return this.play(track).then(() => 0).catch(() => -1);
         }
@@ -541,7 +531,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
     /**
      * Pauses the player.
      */
-    public pause() {
+    public pause(): boolean {
         if (this.isPlaying() && !this.isPaused()) {
             if (this.audioPlayer.pause()) {
                 return true;
@@ -554,7 +544,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
     /**
      * Unpauses the player.
      */
-    public unpause() {
+    public unpause(): boolean {
         if (this.isPlaying() && this.isPaused()) {
             if (this.audioPlayer.unpause()) {
                 return true;
@@ -567,7 +557,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
     /**
      * Stops the player and clears the queue.
      */
-    public stop() {
+    public stop(): void {
         this.queue.clear();
         this.loop = false;
         this.nowPlayingTrack = null;
@@ -576,7 +566,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
     /**
      * Skips the current track.
      */
-    public async skip() {
+    public async skip(): Promise<Track<unknown> | null> {
         this.loop = false;
         const track = this.nowPlaying;
         await this.next();
@@ -585,11 +575,11 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
     /**
      * Destroys the player.
      */
-    public destroy() {
+    public destroy(): void {
         this.stop();
         Player.cache.delete(this.guildId);
     }
-    public getEmbed(page: number) {
+    public getEmbed(page: number): APIEmbed | null {
         const totalPages = Math.max(Math.ceil(this.queue.length / 25) - 1, 0);
         if (page < 0 || totalPages > 0 && page > totalPages || !Number.isSafeInteger(page)) {
             throw new RangeError(`page ${page} is invalid`);
@@ -626,7 +616,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         return eb.toJSON();
     }
 
-    private async next() {
+    private async next(): Promise<void> {
         if (this.audioPlayer.state.status !== AudioPlayerStatus.Idle) {
             this.audioPlayer.stop(true);
             return;
@@ -645,7 +635,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
             }
         }
     }
-    private async play(track: Track) {
+    private async play(track: Track<unknown>): Promise<void> {
         if (!this.isReady()) {
             this.stop();
             throw new Error('the audio connection was invalidated');
@@ -671,56 +661,13 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
 }
 
 // keep track of in progress downloads
-const downloads: Record<string, Promise<string>> = {};
-
-// function downloadFromStream(stream: Readable, path: string, id: string) {
-//     if (id in downloads) {
-//         // return in progress downloads
-//         return downloads[id];
-//     } else {
-//         return downloads[id] = new Promise((resolve, reject) => {
-//             const start = Date.now();
-//             const writeStream = createWriteStream(path);
-//             // cleanly reject errors and remove the file
-//             function error(...args: Parameters<typeof reject>) {
-//                 try {
-//                     writeStream.close();
-//                     rmSync(path);
-//                 } catch (e) {
-//                     delete downloads[id];
-//                     reject(e);
-//                 }
-//                 delete downloads[id];
-//                 reject(...args);
-//             }
-//             // timeout
-//             const timeout = setTimeout(() => {
-//                 if (writeStream.bytesWritten === 0)
-//                     error(`error on download ${id}: timed out after 10 seconds`);
-//             }, 10000);
-//             writeStream.once('finish', () => {
-//                 const end = Date.now();
-//                 console.log(`Took ${end - start}ms to download ${id}.webm.`);
-//                 clearTimeout(timeout);
-//                 if (writeStream.bytesWritten === 0)
-//                     error(`error on download ${id}: the write stream didn't write any data`);
-//                 delete downloads[id];
-//                 resolve(path);
-//             });
-//             writeStream.once('error', (e) => {
-//                 clearTimeout(timeout);
-//                 error(e);
-//             });
-//             stream.pipe(writeStream);
-//         });
-//     }
-// }
+const downloads = {} as Record<string, Promise<string>>;
 
 const DefaultCreateAudioResourceOptions = {
     inlineVolume: true
 } satisfies CreateAudioResourceOptions<null>;
 
-function createDownloadPrepare(id: string, fn: (path: string) => Promise<string>) {
+function createDownloadPrepare(id: string, fn: (path: string) => Promise<string>): PrepareFunction {
     if (!existsSync(AUDIO_CACHE_DIR)) {
         mkdirSync(AUDIO_CACHE_DIR, { recursive: true });
     }
@@ -734,7 +681,7 @@ function createDownloadPrepare(id: string, fn: (path: string) => Promise<string>
     }
 }
 
-function createStreamPrepare(id: string, fn: () => Promise<Readable>) {
+function createStreamPrepare(id: string, fn: () => Promise<Readable>): PrepareFunction {
     const file = path.join(AUDIO_CACHE_DIR, `${id}.webm`);
     return async function prepare() {
         if (existsSync(file)) {
@@ -746,28 +693,9 @@ function createStreamPrepare(id: string, fn: () => Promise<Readable>) {
     }
 }
 
-// ytdl-core (no longer supported)
-
-// function createReadablePrepare(id: string, fn: () => Readable, download = SHOULD_DOWNLOAD) {
-//     if (download) {
-//         return createDownloadPrepare(id, (path) => downloadFromStream(fn(), path, id));
-//     } else {
-//         return createStreamPrepare(async () => fn());
-//     }
-// }
-
-// function createYtdlPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
-//     return createReadablePrepare(videoId, () => ytdl(videoId, DefaultFormatOptions), download);
-// }
-
-// function createYtdlVideoInfoPrepare(info: videoInfo, download = SHOULD_DOWNLOAD) {
-//     return createReadablePrepare(info.videoDetails.videoId, () => ytdl.downloadFromInfo(info, DefaultFormatOptions), download);
-// }
-
 // yt-dlp
-// NOTE: ytdl-core is significantly faster
 
-function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
+function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD): PrepareFunction {
     if (download) {
         return createDownloadPrepare(videoId, (path: string) => {
             let attempts = 0;
@@ -785,7 +713,7 @@ function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD) {
     }
 }
 
-function downloadAudio(videoId: string, path: string) {
+function downloadAudio(videoId: string, path: string): Promise<string> {
     // return current download or create new promise to resolve downloaded audio
     return downloads[videoId] ??= new Promise<string>((resolve, reject) => {
         // arguments
@@ -800,9 +728,7 @@ function downloadAudio(videoId: string, path: string) {
         const proc = spawn('yt-dlp', args);
 
         // log error messages
-        proc.stderr.on('data', data => {
-            process.stderr.write(data);
-        });
+        proc.stderr.pipe(process.stderr);
 
         proc.once('error', (error) => {
             reject(error);
@@ -827,7 +753,7 @@ function downloadAudio(videoId: string, path: string) {
     });
 }
 
-function getStreamingURL(videoId: string) {
+function getStreamingURL(videoId: string): Promise<string> {
     // resolve the streaming URL from yt-dlp
     return new Promise<string>((resolve, reject) => {
         exec(`yt-dlp -f bestaudio --get-url ${videoId.startsWith('-') ? videoURL(videoId) : videoId}`, (error, stdout) => {
