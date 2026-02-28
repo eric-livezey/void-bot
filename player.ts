@@ -9,7 +9,7 @@ import { ReadableStream } from 'node:stream/web';
 import { MusicResponsiveListItem, PlaylistVideo, Video } from 'youtubei.js/dist/src/parser/nodes';
 import { VideoInfo } from 'youtubei.js/dist/src/parser/youtube';
 import { getInnertubeInstance } from './innertube';
-import { channelURL, Duration, generateVideoThumbnailUrl, videoURL } from './utils';
+import { channelURL, Duration, generateVideoThumbnailURL, videoURL } from './utils';
 
 const AUDIO_CACHE_DIR = path.join('cache', 'audio');
 const SHOULD_DOWNLOAD = true;
@@ -109,10 +109,10 @@ export class Track<M = null> {
                 throw new Error(`Request to ${url} did not return a response body.`);
             }
             if (!res.ok) {
-                throw new Error(`Request to ${url} responded with ${res.status} ${res.statusText}`)
+                throw new Error(`Request to ${url} responded with ${res.status} ${res.statusText}`);
             }
             const stream = Readable.fromWeb(res.body as ReadableStream);
-            return createAudioResource(stream, { inlineVolume: true })
+            return createAudioResource(stream, { inlineVolume: true });
         };
         title ??= url.pathname.substring(url.pathname.lastIndexOf('/') + 1) || 'Unknown Title';
         details ??= {};
@@ -141,11 +141,11 @@ export class Track<M = null> {
         const prepare = createYtDlpPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
-            thumbnail: generateVideoThumbnailUrl(videoId),
+            thumbnail: generateVideoThumbnailURL(videoId),
             duration: info.basic_info.duration! * 1000,
             author: {
                 name: videoDetails.author!,
-                url: channelURL(videoDetails.channel!.id!),
+                url: channelURL(videoDetails.channel!.id!)
             }
         } satisfies TrackOptions;
         return new Track(prepare, videoDetails.title!, details);
@@ -160,12 +160,12 @@ export class Track<M = null> {
         const prepare = createYtDlpPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
-            thumbnail: generateVideoThumbnailUrl(videoId),
+            thumbnail: generateVideoThumbnailURL(videoId),
             duration: result.duration.seconds * 1000,
             author: {
                 name: result.author.name,
-                url: result.author.url,
-            },
+                url: result.author.url
+            }
         } satisfies TrackOptions;
         return new Track(prepare, result.title.toString(), details);
     }
@@ -179,12 +179,12 @@ export class Track<M = null> {
         const prepare = createYtDlpPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
-            thumbnail: generateVideoThumbnailUrl(videoId),
+            thumbnail: generateVideoThumbnailURL(videoId),
             duration: item.duration.seconds * 1000,
             author: {
                 name: item.author.name,
-                url: item.author.url,
-            },
+                url: item.author.url
+            }
         } satisfies TrackOptions;
         return new Track(prepare, item.title.toString(), details);
     }
@@ -200,14 +200,14 @@ export class Track<M = null> {
         const prepare = createYtDlpPrepare(videoId);
         const details = {
             url: videoURL(videoId, true),
-            thumbnail: generateVideoThumbnailUrl(videoId),
+            thumbnail: generateVideoThumbnailURL(videoId),
             duration: item.duration!.seconds * 1000,
             author: {
                 name: item.artists![0].name,
-                url: item.artists![0].endpoint?.toURL(),
-            },
+                url: item.artists![0].endpoint?.toURL()
+            }
         } satisfies TrackOptions;
-        return new Track(prepare, item.title!.toString(), details);
+        return new Track(prepare, item.title?.toString() ?? 'Unknown', details);
     }
     /**
      * Returns whether the track has been resolved successfully.

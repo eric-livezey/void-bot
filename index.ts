@@ -177,7 +177,7 @@ const commandFolders = readdirSync(foldersPath);
                 }
 
                 // insufficient permissions
-                if (command.requiredPermissions && !ctx.member!.permissions.has(command.requiredPermissions)) {
+                if (command.requiredPermissions && ctx.inGuild() && !ctx.member.permissions.has(command.requiredPermissions)) {
                     await ctx.reply('You do not have sufficient permissions to execute this command.');
                     return;
                 }
