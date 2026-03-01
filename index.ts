@@ -7,7 +7,7 @@ import config from './config.json';
 import { InteractionContext, MessageContext } from './context';
 import { Player } from './player';
 import { TrackerManager } from './tracker';
-import { createVoiceConnection } from './utils';
+import { ConfigOptions, createVoiceConnection } from './utils';
 
 /**
  * Client gateway intents.
@@ -67,22 +67,23 @@ const log = console.log;
 console.log = function (...data) { log(`[${new Date().toLocaleString()}]`, ...data) };
 
 // config
-const { token, prefix, ownerId, dmChannelId } = config;
+const { token, prefix, ownerId, dmChannelId } = config as ConfigOptions;
+type a = typeof config;
 const isTokenSet = token != null;
 const isPrefixSet = prefix != null;
 const isOwnerIdSet = ownerId != null;
 const isDmChannelIdSet = dmChannelId != null;
+
+if (!isTokenSet) {
+    console.error('[ERROR]', "'token' is not set.");
+    process.exit(1);
+}
 
 // read commands
 const commands = new Collection<string, InteractionCommand>();
 const messageCommands = new Collection<string, MessageCommand>();
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = readdirSync(foldersPath);
-
-if (!isTokenSet) {
-    console.error('[ERROR]', "'token' is not set.");
-    process.exit(1);
-}
 
 (async () => {
     // iterate through command folders

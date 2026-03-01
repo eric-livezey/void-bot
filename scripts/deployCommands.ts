@@ -3,22 +3,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import config from '../config.json';
 import { Command } from '../commands';
+import { ConfigOptions } from '../utils';
 
-const { token, clientId, guildId } = config;
+const { token, clientId, guildId } = config as ConfigOptions;
 const isTokenSet = token != null;
 const isClientIdSet = clientId != null;
 const isGuildIdSet = guildId != null;
 
-const errors = [];
-if (!isTokenSet) {
-    errors.push("'token' is not set.");
-}
-if (!isClientIdSet) {
-    errors.push("'clientId' is not set.");
-}
-if (errors.length > 0) {
-    for (const e of errors) {
-        console.error('[ERROR]', e);
+if (!isTokenSet || !isClientIdSet) {
+    if (!isTokenSet) {
+        console.error('[ERROR]', "'token' is not set.");
+    }
+    if (!isClientIdSet) {
+        console.error('[ERROR]', "'clientId' is not set.");
     }
     process.exit(1);
 }

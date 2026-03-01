@@ -2,6 +2,14 @@ import { joinVoiceChannel, VoiceConnection } from '@discordjs/voice';
 import { Snowflake, VoiceBasedChannel } from 'discord.js';
 import { getInnertubeInstance } from './innertube';
 
+export interface ConfigOptions {
+    token?: string;
+    clientId?: string;
+    guildId?: string;
+    ownerId?: string;
+    dmChannelId?: string;
+    prefix?: string;
+}
 export class Duration {
     private milliseconds: number;
 
