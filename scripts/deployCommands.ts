@@ -1,8 +1,27 @@
 import { REST, RESTPutAPIApplicationCommandsResult, RESTPutAPIApplicationGuildCommandsResult, Routes } from 'discord.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import { clientId, guildId, token } from '../config.json';
+import config from '../config.json';
 import { Command } from '../commands';
+
+const { token, clientId, guildId } = config;
+const isTokenSet = token != null;
+const isClientIdSet = clientId != null;
+const isGuildIdSet = guildId != null;
+
+const errors = [];
+if (!isTokenSet) {
+    errors.push("'token' is not set.");
+}
+if (!isClientIdSet) {
+    errors.push("'clientId' is not set.");
+}
+if (errors.length > 0) {
+    for (const e of errors) {
+        console.error('[ERROR]', e);
+    }
+    process.exit(1);
+}
 
 const commands = [];
 const guildCommands = [];
@@ -46,19 +65,24 @@ const commandFolders = fs.readdirSync(foldersPath);
     const rest = new REST().setToken(token);
 
     try {
-        console.log(`Started refreshing ${commands.length + guildCommands.length} application (/) commands.`);
+        let total = commands.length + guildCommands.length;
+        console.log(`Started refreshing ${total} application (/) commands.`);
 
         const data = await rest.put(
             Routes.applicationCommands(clientId),
             { body: commands }
         ) as RESTPutAPIApplicationCommandsResult;
+        total = data.length;
 
-        const guildData = await rest.put(
-            Routes.applicationGuildCommands(clientId, guildId),
-            { body: guildCommands }
-        ) as RESTPutAPIApplicationGuildCommandsResult;
+        if (isGuildIdSet) {
+            const guildData = await rest.put(
+                Routes.applicationGuildCommands(clientId, guildId),
+                { body: guildCommands }
+            ) as RESTPutAPIApplicationGuildCommandsResult;
+            total += guildData.length;
+        }
 
-        console.log(`Successfully reloaded ${data.length + guildData.length} application (/) commands.`);
+        console.log(`Successfully reloaded ${total} application (/) commands.`);
     } catch (error) {
         console.error(error);
     }
