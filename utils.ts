@@ -2,6 +2,14 @@ import { joinVoiceChannel, VoiceConnection } from '@discordjs/voice';
 import { Snowflake, VoiceBasedChannel } from 'discord.js';
 import { getInnertubeInstance } from './innertube';
 
+export interface ConfigOptions {
+    token?: string;
+    clientId?: string;
+    guildId?: string;
+    ownerId?: string;
+    dmChannelId?: string;
+    prefix?: string;
+}
 export class Duration {
     private milliseconds: number;
 
@@ -260,7 +268,7 @@ export function createVoiceConnection(channel: VoiceBasedChannel): VoiceConnecti
         selfDeaf: false
     });
     connection.on('error', e => {
-        console.warn('A voice connection error occurred.\nAttempting to rejoin...');
+        console.warn(`[${new Date().toLocaleString()}]`, 'A voice connection error occurred.\nAttempting to rejoin...');
         while (connection.rejoinAttempts < 5) {
             if (connection.rejoin()) {
                 console.log('Rejoin was successful.');
@@ -284,7 +292,7 @@ const shortUrlHostname = 'youtu.be';
 const videoIdRegexp = /^[\w-]{11}$/;
 const channelIdRegexp = /^[\w-]{24}$/;
 /**
- * Resolves a url from a string.
+ * Resolves a URL from a string.
  * 
  * @param input A string.
  * @returns The parsed URL or `null`.
@@ -296,7 +304,7 @@ export function resolveURL(input: string): URL | null {
  * Returns whether a URL has a valid domain and protocol for a YouTube URL.
  * 
  * @param url A URL.
- * @param allowShort Allow short urls. Default `false`.
+ * @param allowShort Allow short URLs. Default `false`.
  * @returns `true` if the URL corresponds to a YouTube URL, else `false`.
  */
 export function isYouTubeURL(url: URL, allowShort = false): boolean {
@@ -451,20 +459,20 @@ const ThumbnailQualityDimensions = new Map<ThumbnailQuality, Pick<Thumbnail, 'wi
  * Generate a thumbnail URL for a YouTube video with a specific quality.
  *
  * @param videoId YouTube video ID.
- * @param quality Thumbnail quality. Default {@link ThumbnailQuality.Standard Standard}.
+ * @param quality Thumbnail quality. Default {@link ThumbnailQuality.Default Default}.
  */
-export function generateVideoThumbnailUrl(videoId: string, quality: ThumbnailQuality = ThumbnailQuality.Standard): string {
+export function generateVideoThumbnailURL(videoId: string, quality: ThumbnailQuality = ThumbnailQuality.Default): string {
     return `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/${encodeURIComponent(quality)}.jpg`;
 }
 /**
  * Generate a thumbnail for a YouTube video with a specific quality.
  * 
  * @param videoId YouTube video ID.
- * @param quality Thumbnail quality. Default {@link ThumbnailQuality.Standard Standard}.
+ * @param quality Thumbnail quality. Default {@link ThumbnailQuality.Default Default}.
  */
-export function generateVideoThumbnail(videoId: string, quality: ThumbnailQuality = ThumbnailQuality.Standard): Thumbnail {
+export function generateVideoThumbnail(videoId: string, quality: ThumbnailQuality = ThumbnailQuality.Default): Thumbnail {
     return {
-        url: generateVideoThumbnailUrl(videoId, quality),
+        url: generateVideoThumbnailURL(videoId, quality),
         ...ThumbnailQualityDimensions.get(quality)!
     };
 }

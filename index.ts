@@ -3,11 +3,11 @@ import { readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { Client, Command, InteractionCommand, MessageCommand } from './commands';
 import { generateQueueMessage } from './commands/playback/queue';
-import { dmChannelId, ownerId, token, prefix } from './config.json';
+import config from './config.json';
 import { InteractionContext, MessageContext } from './context';
 import { Player } from './player';
 import { TrackerManager } from './tracker';
-import { createVoiceConnection } from './utils';
+import { ConfigOptions, createVoiceConnection } from './utils';
 
 /**
  * Client gateway intents.
@@ -62,9 +62,22 @@ function _messageToCreateOptions(message: Message): MessageCreateOptions {
     }
 }
 
-// Add date and time to logs
+// add date and time to logs
 const log = console.log;
 console.log = function (...data) { log(`[${new Date().toLocaleString()}]`, ...data) };
+
+// config
+const { token, prefix, ownerId, dmChannelId } = config as ConfigOptions;
+type a = typeof config;
+const isTokenSet = token != null;
+const isPrefixSet = prefix != null;
+const isOwnerIdSet = ownerId != null;
+const isDmChannelIdSet = dmChannelId != null;
+
+if (!isTokenSet) {
+    console.error('[ERROR]', "'token' is not set.");
+    process.exit(1);
+}
 
 // read commands
 const commands = new Collection<string, InteractionCommand>();
@@ -146,7 +159,7 @@ const commandFolders = readdirSync(foldersPath);
         // ignore messages from the bot user
         if (message.author.id !== message.client.user?.id) {
             // DMs
-            if (channel.isDMBased()) {
+            if (isDmChannelIdSet && channel.isDMBased()) {
                 // forward DMs to the DM channel if present
                 const dmChannel = message.client.channels.resolve(dmChannelId);
                 if (dmChannel?.isSendable()) {
@@ -158,7 +171,7 @@ const commandFolders = readdirSync(foldersPath);
                 }
             }
             // commands
-            if (message.content.startsWith(prefix)) {
+            if (isPrefixSet && message.content.startsWith(prefix)) {
                 // create context
                 const ctx = new MessageContext(message, prefix);
                 // find command
@@ -177,13 +190,13 @@ const commandFolders = readdirSync(foldersPath);
                 }
 
                 // insufficient permissions
-                if (command.requiredPermissions && !ctx.member!.permissions.has(command.requiredPermissions)) {
+                if (command.requiredPermissions && ctx.inGuild() && !ctx.member.permissions.has(command.requiredPermissions)) {
                     await ctx.reply('You do not have sufficient permissions to execute this command.');
                     return;
                 }
 
                 // silently ignore if owner only
-                if (command.isOwnerOnly && ctx.user.id !== ownerId) {
+                if (command.isOwnerOnly && !isOwnerIdSet || ctx.user.id !== ownerId) {
                     return;
                 }
 
