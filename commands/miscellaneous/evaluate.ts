@@ -36,7 +36,6 @@ export default {
     message: [
         {
             aliases: ['evaluate', 'eval'],
-            isDmRestricted: true,
             async execute(ctx: MessageContext) {
                 const [input] = ctx.getArguments(1);
 
