@@ -125,8 +125,9 @@ export async function play(ctx: CommandContext<true>, { input, attachment }: { i
     if (await connectToSpeak(ctx)) {
         if (attachment) {
             try {
-                const track = await Track.fromURL(attachment.url);
-                await playTrack(ctx, track);
+                const url = attachment.url;
+                const track = await Track.fromURL(url);
+                await playTrack(ctx, track, normalizeURL(url));
             } catch {
                 await ctx.reply('The URL is invalid.');
             }

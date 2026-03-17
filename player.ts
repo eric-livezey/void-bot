@@ -289,7 +289,7 @@ export class Track<M = null> {
         if (this.thumbnail != null) {
             if (this.thumbnail instanceof AttachmentBuilder) {
                 let thumbnail;
-                if (this.url && (thumbnail = getCachedThumbnailURL(this.url))) {
+                if (this.url && (thumbnail = getCachedThumbnailURL(normalizeURL(this.url)))) {
                     eb.setThumbnail(thumbnail);
                 } else {
                     files.push(this.thumbnail);
