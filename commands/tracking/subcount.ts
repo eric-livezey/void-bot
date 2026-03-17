@@ -15,13 +15,13 @@ export async function subscriberCount(ctx: CommandContext<true>, input: string) 
                 const tracker = await trackers.addChannelTracker(ctx.guildId, channelId);
                 await ctx.reply(`Tracking subscriber count updates for \`${tracker.title!}\`.`);
             } else {
-                await ctx.reply('That channel is already being tracked.', true);
+                await ctx.reply('That channel is already being tracked.', { ephemeral: true });
             }
         } catch (error) {
             await ctx.replyOrFollowUp((error as Error).message + '.', true);
         }
     } else {
-        await ctx.reply('You must provide a valid YouTube channel URL.', true);
+        await ctx.reply('You must provide a valid YouTube channel URL.', { ephemeral: true });
     }
 }
 

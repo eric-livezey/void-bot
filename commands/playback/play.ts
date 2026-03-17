@@ -2,11 +2,10 @@ import { Attachment, channelMention, EmbedBuilder, InteractionContextType, Permi
 import { YTNodes } from 'youtubei.js';
 import { Playlist } from 'youtubei.js/dist/src/parser/youtube';
 import { Command } from '..';
-import { ownerId } from '../../config.json';
 import { CommandContext, InteractionContext, MessageContext } from '../../context';
 import { getInnertubeInstance } from '../../innertube';
 import { Track } from '../../player';
-import { bestThumbnail, channelURL, createVoiceConnection, extractPlaylistId, extractVideoId, playlistURL, resolveURL } from '../../utils';
+import { bestThumbnail, channelURL, createVoiceConnection, extractPlaylistId, extractVideoId, isDiscordAttachmentURL, normalizeURL, playlistURL, resolveURL } from '../../utils';
 import { resume } from './resume';
 
 export async function canManagePlayback(ctx: CommandContext<true>) {
@@ -19,7 +18,7 @@ export async function canManagePlayback(ctx: CommandContext<true>) {
         const channel = me.voice.channel;
         if (channel) {
             if (ctx.member.voice.channelId === channel.id) {
-                if (ctx.member.permissionsIn(channel).has(PermissionsBitField.Flags.Speak)) {
+                if (ctx.isOwner() || ctx.member.permissionsIn(channel).has(PermissionsBitField.Flags.Speak)) {
                     return true;
                 } else {
                     await ctx.reply(`You don't have permission to speak in ${channelMention(channel.id)}.`);
@@ -31,7 +30,7 @@ export async function canManagePlayback(ctx: CommandContext<true>) {
             await ctx.reply('Nothing is playing.');
         }
     } else {
-        await ctx.reply('Nothing is playing.', true);
+        await ctx.reply('Nothing is playing.', { ephemeral: true });
     }
     return false;
 }
@@ -41,7 +40,7 @@ export async function canViewPlayback(ctx: CommandContext<true>) {
     if (player.isPlaying()) {
         return true;
     } else {
-        await ctx.reply('Nothing is playing', true);
+        await ctx.reply('Nothing is playing', { ephemeral: true });
     }
     return false;
 }
@@ -49,11 +48,11 @@ export async function canViewPlayback(ctx: CommandContext<true>) {
 export async function connectToSpeak(ctx: CommandContext<true>) {
     const channel = ctx.member.voice.channel;
     if (!channel) {
-        await ctx.reply('You are not in a voice channel.', true);
+        await ctx.reply('You are not in a voice channel.', { ephemeral: true });
         return false;
     }
-    if (!ctx.member.permissionsIn(channel).has(PermissionsBitField.Flags.Speak)) {
-        await ctx.reply(`You don't have permission to speak in ${channelMention(channel.id)}.`, true);
+    if (!ctx.isOwner() && !ctx.member.permissionsIn(channel).has(PermissionsBitField.Flags.Speak)) {
+        await ctx.reply(`You don't have permission to speak in ${channelMention(channel.id)}.`, { ephemeral: true });
         return false;
     }
     if (ctx.isInteraction()) {
@@ -86,7 +85,8 @@ export async function playPlaylist(ctx: CommandContext<true>, playlist: Playlist
                 const index = await player.enqueue(track);
                 // NOTE: Failed tracks are skipped if prepared during enqueue
                 if (index === 0) {
-                    await ctx.reply({ content: '**Now Playing**:', embeds: [track.toEmbed()] });
+                    const { embed, files } = track.toEmbed();
+                    await ctx.reply({ content: '**Now Playing**:', embeds: [embed], files });
                 } else if (index > 0) {
                     totalAdded++;
                 }
@@ -107,26 +107,29 @@ export async function playPlaylist(ctx: CommandContext<true>, playlist: Playlist
     });
 }
 
-export async function playTrack(ctx: CommandContext<true>, track: Track) {
+export async function playTrack(ctx: CommandContext<true>, track: Track, thumbnailKey?: string) {
     const { player } = ctx;
     const position = await player.enqueue(track);
     if (position < 0) {
         await ctx.reply(`An error occurred while attempting to play the video.`);
     } else if (position === 0) {
-        await ctx.reply({ content: '**Now Playing**:', embeds: [track.toEmbed()] });
+        const { embed, files } = track.toEmbed();
+        await ctx.reply({ content: '**Now Playing**:', embeds: [embed], files }, { thumbnailKey });
     } else {
-        await ctx.reply({
-            content: '**Added to the Queue**:',
-            embeds: [track.toEmbed({ name: 'Position', value: position.toLocaleString(), inline: true })],
-        });
+        const { embed, files } = track.toEmbed({ name: 'Position', value: position.toLocaleString(), inline: true });
+        await ctx.reply({ content: '**Added to the Queue**:', embeds: [embed], files }, { thumbnailKey });
     }
 }
 
 export async function play(ctx: CommandContext<true>, { input, attachment }: { input?: string, attachment?: Attachment }) {
     if (await connectToSpeak(ctx)) {
         if (attachment) {
-            const track = Track.fromURL(attachment.url);
-            await playTrack(ctx, track);
+            try {
+                const track = await Track.fromURL(attachment.url);
+                await playTrack(ctx, track);
+            } catch {
+                await ctx.reply('The URL is invalid.');
+            }
         } else if (input) {
             const innertube = await getInnertubeInstance();
             const url = resolveURL(input!);
@@ -154,12 +157,17 @@ export async function play(ctx: CommandContext<true>, { input, attachment }: { i
                     }
                     return;
                 }
-                if (ctx.user.id === ownerId) {
-                    const track = Track.fromURL(input);
-                    await playTrack(ctx, track);
-                    return;
+                if (ctx.isOwner() || isDiscordAttachmentURL(url)) {
+                    // Only allow discord attachments URLs for anyone who isn't the owner
+                    try {
+                        const track = await Track.fromURL(url);
+                        await playTrack(ctx, track, normalizeURL(url));
+                    } catch {
+                        await ctx.reply('The URL could not be played.');
+                    }
+                } else {
+                    await ctx.reply('Invalid URL.');
                 }
-                await ctx.reply('The URL is invalid.');
             } else {
                 // search query
                 const search = await innertube.search(input, { type: 'video' });

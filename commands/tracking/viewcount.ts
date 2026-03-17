@@ -15,13 +15,13 @@ export async function viewCount(ctx: CommandContext<true>, input: string) {
                 const tracker = await trackers.addVideoTracker(ctx.guildId, videoId);
                 await ctx.reply(`Tracking view count updates for \`${tracker.title!}\`.`);
             } else {
-                await ctx.reply('That video is already being tracked.', true);
+                await ctx.reply('That video is already being tracked.', { ephemeral: true });
             }
         } catch (error) {
             await ctx.replyOrFollowUp((error as Error).message + '.', true);
         }
     } else {
-        await ctx.reply('You must provide a valid YouTube video URL.', true);
+        await ctx.reply('You must provide a valid YouTube video URL.', { ephemeral: true });
     }
 }
 

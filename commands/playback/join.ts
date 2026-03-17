@@ -4,7 +4,7 @@ import { CommandContext, InteractionContext, MessageContext } from '../../contex
 import { createVoiceConnection, resolveChannelId } from '../../utils';
 
 export async function join(ctx: CommandContext<true>, channel?: VoiceBasedChannel) {
-    if (channel && !ctx.member.permissionsIn(channel).has(permissions)) {
+    if (!ctx.isOwner() && channel && !ctx.member.permissionsIn(channel).has(permissions)) {
         await ctx.reply(`You don't have sufficient permissions to connect to ${channelMention(channel.id)}.`);
         return;
     }
@@ -16,7 +16,7 @@ export async function join(ctx: CommandContext<true>, channel?: VoiceBasedChanne
     if (ctx.isInteraction()) {
         await ctx.deferReply();
     }
-    const me = await ctx.guild.members.fetchMe();
+    const me = await voiceChannel.guild.members.fetchMe();
     if (me.voice.channelId !== voiceChannel.id) {
         if (voiceChannel.joinable) {
             createVoiceConnection(voiceChannel);
@@ -60,7 +60,7 @@ export default {
                 let channel;
                 if (input) {
                     const channelId = resolveChannelId(input);
-                    channel = channelId ? await ctx.guild.channels.fetch(channelId).catch(() => null) : null;
+                    channel = channelId ? await (ctx.isOwner() ? ctx.client.channels : ctx.guild.channels).fetch(channelId).catch(() => null) : null;
                     if (!channel || channel.type !== ChannelType.GuildVoice) {
                         await ctx.reply('Invalid voice channel.');
                         return;

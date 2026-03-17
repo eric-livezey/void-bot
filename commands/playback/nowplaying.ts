@@ -7,7 +7,8 @@ export async function nowPlaying(ctx: CommandContext<true>) {
     if (await canViewPlayback(ctx)) {
         const track = ctx.player.nowPlaying;
         if (track) {
-            await ctx.reply({ content: '**Now Playing**:', embeds: [track.toEmbed()] });
+            const { embed, files } = track.toEmbed();
+            await ctx.reply({ content: '**Now Playing**:', embeds: [embed], files });
         } else {
             await ctx.reply('Nothing is playing.');
         }

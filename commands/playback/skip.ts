@@ -9,7 +9,8 @@ export async function skip(ctx: CommandContext<true>, count?: number) {
         if (count == null) {
             const track = await player.skip();
             if (track) {
-                await ctx.reply({ content: '**Skipped**:', embeds: [track.toEmbed()] });
+                const { embed, files } = track.toEmbed();
+                await ctx.reply({ content: '**Skipped**:', embeds: [embed], files });
             } else {
                 await ctx.reply('Nothing is playing.');
             }

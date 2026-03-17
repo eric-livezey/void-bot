@@ -68,7 +68,6 @@ console.log = function (...data) { log(`[${new Date().toLocaleString()}]`, ...da
 
 // config
 const { token, prefix, ownerId, dmChannelId } = config as ConfigOptions;
-type a = typeof config;
 const isTokenSet = token != null;
 const isPrefixSet = prefix != null;
 const isOwnerIdSet = ownerId != null;
@@ -196,7 +195,7 @@ const commandFolders = readdirSync(foldersPath);
                 }
 
                 // silently ignore if owner only
-                if (command.isOwnerOnly && !isOwnerIdSet || ctx.user.id !== ownerId) {
+                if (command.isOwnerOnly && !isOwnerIdSet || !ctx.isOwner()) {
                     return;
                 }
 

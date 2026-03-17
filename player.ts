@@ -1,15 +1,17 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, CreateAudioResourceOptions, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
-import { APIEmbed, APIEmbedField, EmbedBuilder, RestOrArray, Snowflake } from 'discord.js';
+import { APIEmbed, APIEmbedField, AttachmentBuilder, EmbedBuilder, RestOrArray, Snowflake } from 'discord.js';
+import { parseWebStream } from 'music-metadata';
 import { exec, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
+import sharp from 'sharp';
 import { MusicResponsiveListItem, PlaylistVideo, Video } from 'youtubei.js/dist/src/parser/nodes';
 import { VideoInfo } from 'youtubei.js/dist/src/parser/youtube';
 import { getInnertubeInstance } from './innertube';
-import { channelURL, Duration, generateVideoThumbnailURL, videoURL } from './utils';
+import { channelURL, Duration, generateVideoThumbnailURL, getCachedThumbnailURL, normalizeURL, videoURL } from './utils';
 
 const AUDIO_CACHE_DIR = path.join('cache', 'audio');
 const SHOULD_DOWNLOAD = true;
@@ -32,7 +34,7 @@ export interface TrackAuthor {
 
 export interface TrackOptions {
     url?: string;
-    thumbnail?: string;
+    thumbnail?: AttachmentBuilder | string;
     duration?: number;
     author?: {
         -readonly [P in keyof TrackAuthor]?: Exclude<TrackAuthor[P], null>;
@@ -56,7 +58,7 @@ export class Track<M = null> {
     /**
      * The URL to the thumbnail image.
      */
-    public readonly thumbnail: string | null;
+    public readonly thumbnail: AttachmentBuilder | string | null;
     /**
      * The track's duration in milliseconds.
      */
@@ -101,21 +103,40 @@ export class Track<M = null> {
      * @param title The title of the track.
      * @param details Track details.
      */
-    public static fromURL(url: URL | string, title?: string, details?: TrackOptions): Track {
+    public static async fromURL(url: URL | string, title?: string, details?: TrackOptions): Promise<Track> {
         url = new URL(url);
         const prepare = async () => {
             const res = await fetch(url);
-            if (!res.body) {
-                throw new Error(`Request to ${url} did not return a response body.`);
-            }
-            if (!res.ok) {
-                throw new Error(`Request to ${url} responded with ${res.status} ${res.statusText}`);
-            }
+            validateResponse(res);
             const stream = Readable.fromWeb(res.body as ReadableStream);
             return createAudioResource(stream, { inlineVolume: true });
         };
-        title ??= url.pathname.substring(url.pathname.lastIndexOf('/') + 1) || 'Unknown Title';
+        const res = await fetch(url);
+        validateResponse(res);
+        let metadata;
+        try {
+            metadata = await parseWebStream(res.body, res.headers.get('Content-Type') ?? undefined);
+        } catch (e) {
+            console.error(e);
+        }
+        const common = metadata?.common;
+        title ??= common?.title || url.pathname.substring(url.pathname.lastIndexOf('/') + 1) || 'Unknown Title';
         details ??= {};
+        if (common?.artist) {
+            // NOTE: ID3 tags are stupidly inconsistent in their delimiters. Only id3v2.4 separates
+            // by artists by a NULL byte but id3v2.4 is largely unsupported. Though not
+            // standardized, ";" seems to be the most common delimiter which doesn't often present
+            // issues when delimiting artists
+            const artists = common.artist.split(';');
+            details.author ??= { name: [artists.slice(0, artists.length).join(', '), ...artists.slice(0, -1)].join(' & ') };
+        }
+        if (metadata?.format.duration) {
+            details.duration = metadata?.format.duration * 1000;
+        }
+        if (common?.picture && common.picture.length > 0) {
+            const picture = common.picture[0];
+            details.thumbnail = getCachedThumbnailURL(normalizeURL(url)) ?? new AttachmentBuilder(sharp(Buffer.from(picture.data)).resize(120), { name: 'thumbnail.png' });
+        }
         details.url ??= url.toString();
         return new Track(prepare, title, details);
     }
@@ -255,8 +276,9 @@ export class Track<M = null> {
      *
      * @param fields Additional embed fields.
      */
-    public toEmbed(...fields: RestOrArray<APIEmbedField>): APIEmbed {
+    public toEmbed(...fields: RestOrArray<APIEmbedField>): { embed: APIEmbed; files: AttachmentBuilder[]; } {
         const eb = new EmbedBuilder();
+        const files = [] as AttachmentBuilder[];
         eb.setTitle(this.title);
         if (this.url != null) {
             eb.setURL(this.url);
@@ -265,7 +287,17 @@ export class Track<M = null> {
             eb.setAuthor({ name: this.author.name, url: this.author.url ?? undefined, iconURL: this.author.iconURL ?? undefined });
         }
         if (this.thumbnail != null) {
-            eb.setThumbnail(this.thumbnail);
+            if (this.thumbnail instanceof AttachmentBuilder) {
+                let thumbnail;
+                if (this.url && (thumbnail = getCachedThumbnailURL(this.url))) {
+                    eb.setThumbnail(thumbnail);
+                } else {
+                    files.push(this.thumbnail);
+                    eb.setThumbnail(`attachment://${this.thumbnail.name}`);
+                }
+            } else {
+                eb.setThumbnail(this.thumbnail);
+            }
         }
         if (this.duration != null || this.isResolved() && this.resource.started) {
             let duration = this.duration != null ? Duration.format(this.duration) : 'unknown';
@@ -276,7 +308,7 @@ export class Track<M = null> {
         }
         if (fields.length > 0)
             eb.addFields(...fields);
-        return eb.toJSON();
+        return { embed: eb.toJSON(), files };
     }
 }
 
@@ -364,7 +396,7 @@ export class Queue implements Iterable<Track<unknown>> {
         this.splice(0);
     }
     public shuffle(): void {
-        let currentIndex = this.list.length, randomIndex = -1;
+        let currentIndex = this.list.length, randomIndex;
         while (currentIndex > 0) {
             randomIndex = Math.floor(Math.random() * currentIndex);
             currentIndex--;
@@ -579,7 +611,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         this.stop();
         Player.cache.delete(this.guildId);
     }
-    public getEmbed(page: number): APIEmbed | null {
+    public getEmbed(page: number): { embed: APIEmbed; files: AttachmentBuilder[]; } | null {
         const totalPages = Math.max(Math.ceil(this.queue.length / 25) - 1, 0);
         if (page < 0 || totalPages > 0 && page > totalPages || !Number.isSafeInteger(page)) {
             throw new RangeError(`page ${page} is invalid`);
@@ -592,7 +624,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         }
         const eb = new EmbedBuilder();
         if (page === 0) {
-            const { title, url, description } = this.nowPlaying.toEmbed();
+            const { embed: { title, url, description } } = this.nowPlaying.toEmbed();
             eb.setAuthor({ name: 'Now Playing:' });
             if (title != null) {
                 eb.setTitle(title);
@@ -613,7 +645,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         }
         const duration = (this.nowPlaying.duration ?? 0) + this.queue.duration;
         eb.setFooter({ text: `${this.queue.length + 1} items (${Duration.format(duration)})${this.queue.length > 25 ? `\nPage ${page + 1}/${totalPages + 1}` : ''}` });
-        return eb.toJSON();
+        return { embed: eb.toJSON(), files: [] };
     }
 
     private async next(): Promise<void> {
@@ -641,7 +673,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
             throw new Error('the audio connection was invalidated');
         }
         this.nowPlayingTrack = track;
-        let resource = null;
+        let resource;
         try {
             resource = await track.resolve();
         }
@@ -657,6 +689,19 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         if (this.isPaused()) {
             this.unpause();
         }
+    }
+}
+
+function validateResponse(res: Response): asserts res is Response & { body: Exclude<Response['body'], null> } {
+    if (!res.ok) {
+        throw new Error(`Request to ${res.url} responded with ${res.status} ${res.statusText}`);
+    }
+    if (!res.body) {
+        throw new Error(`Request to ${res.url} did not return a response body.`);
+    }
+    const contentType = res.headers.get('Content-Type');
+    if (!contentType || !contentType?.startsWith('audio/') && !contentType.startsWith('video/')) {
+        throw new Error(`Unsupported Mime Type: ${contentType}`);
     }
 }
 

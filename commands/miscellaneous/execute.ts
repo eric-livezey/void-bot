@@ -9,9 +9,9 @@ export async function execute(ctx: CommandContext, code: string) {
         await ctx.replyOrFollowUp('Code executed.');
     } catch (error) {
         if (error instanceof Error) {
-            await ctx.reply(error.toString(), true);
+            await ctx.reply(error.toString(), { ephemeral: true });
         } else {
-            await ctx.reply('An error was thrown which was not an instance of Error.', true);
+            await ctx.reply('An error was thrown which was not an instance of Error.', { ephemeral: true });
         }
     }
 }

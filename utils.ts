@@ -1,6 +1,11 @@
 import { joinVoiceChannel, VoiceConnection } from '@discordjs/voice';
 import { Snowflake, VoiceBasedChannel } from 'discord.js';
 import { getInnertubeInstance } from './innertube';
+import path from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import config from './config.json';
+
+const { ownerId: OWNER_ID } = config as ConfigOptions;
 
 export interface ConfigOptions {
     token?: string;
@@ -260,6 +265,22 @@ export function resolveChannelId(input: string): Snowflake | null {
 export function resolveRoleId(input: string): Snowflake | null {
     return input.match(/^<#\d{1,20}>$/)?.[1] ?? resolveSnowflake(input);
 }
+/**
+ * Returns `true` if a URL is corresponds to a discord attachment.
+ * 
+ * @param url The URL
+ * @returns `true` if the URL corresponds to a discord attachment, else `false`
+ */
+export function isDiscordAttachmentURL(url: URL): boolean {
+    return url.protocol === 'https:' && url.hostname === 'cdn.discordapp.com' && /^\/(?:ephemeral-)?attachments\/[0-9]+\/[0-9]+\/[^/]+$/.test(url.pathname);
+}
+export function normalizeURL(url: URL | string) {
+    url = new URL(url);
+    if (isDiscordAttachmentURL(url)) {
+        url.search = '';
+    }
+    return url.toString();
+}
 export function createVoiceConnection(channel: VoiceBasedChannel): VoiceConnection {
     const connection = joinVoiceChannel({
         channelId: channel.id,
@@ -484,4 +505,25 @@ export function generateVideoThumbnail(videoId: string, quality: ThumbnailQualit
  */
 export function bestThumbnail(thumbnails: Thumbnail[]): Thumbnail {
     return thumbnails.reduce((best, current) => current.width * current.height > best.height * best.width ? current : best);
+}
+const THUMBNAIL_CACHE_PATH = path.join('cache', 'thumbnails.json');
+let THUMBNAIL_CACHE: Map<string, string>;
+function getThumbnailCache(): Map<string, string> {
+    return THUMBNAIL_CACHE ?? (THUMBNAIL_CACHE = new Map(existsSync(THUMBNAIL_CACHE_PATH) ? Object.entries(JSON.parse(readFileSync(THUMBNAIL_CACHE_PATH).toString())) : null));
+}
+function saveThumbnailCache() {
+    writeFileSync(THUMBNAIL_CACHE_PATH, JSON.stringify(Object.fromEntries(getThumbnailCache())));
+}
+export function cacheThumbnailURL(key: string, url: string): void {
+    const cache = getThumbnailCache();
+    if (cache.get(key) !== url) {
+        cache.set(key, url);
+        saveThumbnailCache();
+    }
+}
+export function getCachedThumbnailURL(key: string): string | null {
+    return getThumbnailCache().get(key) ?? null;
+}
+export function isOwner(userId: Snowflake) {
+    return OWNER_ID != null && userId === OWNER_ID;
 }

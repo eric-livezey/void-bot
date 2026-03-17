@@ -10,7 +10,7 @@ export async function leave(ctx: CommandContext<true>) {
     const me = await ctx.guild.members.fetchMe();
     const channel = me.voice.channel;
     if (channel) {
-        if (ctx.member.voice.channelId === channel.id || ctx.member.permissionsIn(channel).has(PermissionsBitField.Flags.Connect)) {
+        if (ctx.isOwner() || ctx.member.voice.channelId === channel.id || ctx.member.permissionsIn(channel).has(PermissionsBitField.Flags.Connect)) {
             getVoiceConnection(ctx.guildId)?.destroy();
             await ctx.reply(`Disconnected from ${channelMention(channel.id)}.`);
         } else {

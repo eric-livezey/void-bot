@@ -12,12 +12,13 @@ export async function info(ctx: CommandContext<true>, index: number) {
         if (index <= player.queue.length) {
             const track = player.queue.get(index - 1);
             if (track) {
-                await ctx.reply({ embeds: [track.toEmbed()] });
+                const { embed, files } = track.toEmbed();
+                await ctx.reply({ embeds: [embed], files });
             } else {
-                await ctx.reply('`index` must be less than or equal to the length of the queue.', true);
+                await ctx.reply('`index` must be less than or equal to the length of the queue.', { ephemeral: true });
             }
         } else {
-            await ctx.reply('`index` must be less than or equal to the length of the queue.', true);
+            await ctx.reply('`index` must be less than or equal to the length of the queue.', { ephemeral: true });
         }
     }
 }

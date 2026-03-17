@@ -13,7 +13,7 @@ export function generateQueueMessage(player: Player, page: number): MessagePaylo
     if (page < 0) {
         page = 0;
     }
-    const embed = player.getEmbed(page);
+    const result = player.getEmbed(page);
     const arb = new ActionRowBuilder();
     if (page > 0) {
         arb.addComponents(
@@ -32,20 +32,22 @@ export function generateQueueMessage(player: Player, page: number): MessagePaylo
         );
     }
     let content;
-    if (embed === null) {
+    if (result === null) {
         content = 'Nothing is playing.'
     } else if (player.queue.length === 0) {
         content = '**Now Playing**:';
     }
+    const files = [];
     const embeds = [];
-    if (embed !== null) {
-        embeds.push(embed);
+    if (result !== null) {
+        files.push(...result.files);
+        embeds.push(result.embed);
     }
     const components = [];
     if (arb.components.length > 0) {
         components.push(arb.toJSON());
     }
-    return { content, embeds, components };
+    return { content, embeds, components, files };
 }
 
 export async function queue(ctx: CommandContext<true>) {
