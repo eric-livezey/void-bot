@@ -24,10 +24,19 @@ function makeEphemeral(options: string | MessagePayloadOption): MessagePayloadOp
     return options;
 }
 
+function cacheMessageThumbnailURL(key: string, message: Message) {
+    const thumbnail = message.embeds[0]?.thumbnail;
+    if (thumbnail) {
+        cacheThumbnailURL(key, normalizeURL(thumbnail.url));
+    }
+}
+
 export interface ContextReplyOptions {
     ephemeral?: boolean;
     thumbnailKey?: string;
 }
+
+export type ContextEditReplyOptions = Pick<ContextReplyOptions, 'thumbnailKey'>;
 
 export interface ContextOptions {
     client: Client<true>;
@@ -138,7 +147,7 @@ export abstract class CommandContext<InGuild extends boolean = boolean> {
     /**
      * Edits the existing reply to the command.
      */
-    public abstract editReply(options: string | MessagePayloadOption): Promise<Message<InGuild>>;
+    public abstract editReply(options: string | MessagePayloadOption, additionalOptions?: ContextEditReplyOptions): Promise<Message<InGuild>>;
     /**
      * Replies to the command, or creates a follow up message if the command has already been replied to.
      */
@@ -194,18 +203,21 @@ export class MessageContext<InGuild extends boolean = boolean> extends CommandCo
     public async reply(options: string | MessagePayloadOption, { thumbnailKey }: ContextReplyOptions = {}): Promise<Message<InGuild>> {
         const payload = this.resolveMessagePayload(options);
         const message = this.response = await this.channel.send(payload) as Message<InGuild>;
-        let thumbnail;
-        if (thumbnailKey != null && (thumbnail = message.embeds[0]?.thumbnail)) {
-            cacheThumbnailURL(thumbnailKey, normalizeURL(thumbnail.url));
+        if (thumbnailKey != null) {
+            cacheMessageThumbnailURL(thumbnailKey, message);
         }
         return message;
     }
     public async followUp(options: string | MessagePayloadOption): Promise<Message<InGuild>> {
         return this.response = await this.reply(options);
     }
-    public async editReply(options: string | MessagePayloadOption): Promise<Message<InGuild>> {
+    public async editReply(options: string | MessagePayloadOption, { thumbnailKey }: ContextEditReplyOptions = {}): Promise<Message<InGuild>> {
         const payload = this.resolveMessagePayload(options);
-        throw this.response = await this.response!.edit(payload);
+        const message = this.response = await this.response!.edit(payload);
+        if (thumbnailKey != null) {
+            cacheMessageThumbnailURL(thumbnailKey, message);
+        }
+        return message;
     }
 }
 
@@ -250,9 +262,9 @@ export class InteractionContext<InGuild extends boolean = boolean> extends Comma
         (options as InteractionReplyOptions).withResponse = true;
         const payload = this.resolveMessagePayload(options);
         const response = (await this.interaction.reply(payload) as unknown as InteractionCallbackResponse<InGuild>);
-        let thumbnail;
-        if (thumbnailKey != null && (thumbnail = response.resource?.message?.embeds[0]?.thumbnail)) {
-            cacheThumbnailURL(thumbnailKey, normalizeURL(thumbnail.url));
+        let message;
+        if (thumbnailKey != null && (message = response.resource?.message)) {
+            cacheMessageThumbnailURL(thumbnailKey, message);
         }
         return response;
     }
@@ -263,8 +275,12 @@ export class InteractionContext<InGuild extends boolean = boolean> extends Comma
         const payload = this.resolveMessagePayload(options);
         return await this.interaction.followUp(payload) as Message<InGuild>;
     }
-    public async editReply(options: string | MessagePayloadOption): Promise<Message<InGuild>> {
+    public async editReply(options: string | MessagePayloadOption, { thumbnailKey }: ContextEditReplyOptions = {}): Promise<Message<InGuild>> {
         const payload = this.resolveMessagePayload(options);
-        return await this.interaction.editReply(payload) as Message<InGuild>;
+        const message = await this.interaction.editReply(payload) as Message<InGuild>;
+        if (thumbnailKey != null) {
+            cacheMessageThumbnailURL(thumbnailKey, message);
+        }
+        return message;
     }
 }

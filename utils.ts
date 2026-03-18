@@ -229,6 +229,16 @@ function zeroFill(value: number, maxLength = 2): string {
     return value.toString().padStart(maxLength, '0');
 }
 
+const SNOWFLAKE_PATTERN = /\d{1,20}/;
+const SNOWFLAKE_REGEXP = RegExp(`^${SNOWFLAKE_PATTERN}$`);
+const USER_MENTION_REGEXP = RegExp(`^<@(${SNOWFLAKE_PATTERN})>$`);
+const CHANNEL_MENTION_REGEXP = RegExp(`^<#(${SNOWFLAKE_PATTERN})>$`);
+const CHANNEL_URL_REGEXP = RegExp(`^https://discord\\.com/channels/${SNOWFLAKE_PATTERN}/(${SNOWFLAKE_PATTERN})$`)
+const ROLE_MENTION_REGEXP = RegExp(`^<@&(${SNOWFLAKE_PATTERN})>$`);
+function resolveDiscordId(input: string, ...expressions: RegExp[]): string | null {
+    let match: RegExpMatchArray | null;
+    return expressions.some(exp => match = input.match(exp)) ? match![1] : resolveSnowflake(input);
+}
 /**
  * Resolves a snowflake from a string.
  * 
@@ -236,7 +246,7 @@ function zeroFill(value: number, maxLength = 2): string {
  * @returns The snowflake or `null`.
  */
 export function resolveSnowflake(input: string): Snowflake | null {
-    return input.match(/^[0-9]{1,20}$/)?.[0] ?? null;
+    return input.match(SNOWFLAKE_REGEXP)?.[0] ?? null;
 }
 /**
  * Resolves a user ID from a mention or snowflake.
@@ -245,7 +255,7 @@ export function resolveSnowflake(input: string): Snowflake | null {
  * @returns The user ID or `null`.
  */
 export function resolveUserId(input: string): Snowflake | null {
-    return input.match(/^<@\d{1,20}>$/)?.[1] ?? resolveSnowflake(input);
+    return resolveDiscordId(input, USER_MENTION_REGEXP);
 }
 /**
  * Resolves a channel ID from a mention or snowflake.
@@ -254,7 +264,7 @@ export function resolveUserId(input: string): Snowflake | null {
  * @returns The channel ID or `null`.
  */
 export function resolveChannelId(input: string): Snowflake | null {
-    return input.match(/^<#\d{1,20}>$/)?.[1] ?? resolveSnowflake(input);
+    return resolveDiscordId(input, CHANNEL_MENTION_REGEXP, CHANNEL_URL_REGEXP);
 }
 /**
  * Resolves a role ID from a mention or snowflake.
@@ -263,7 +273,7 @@ export function resolveChannelId(input: string): Snowflake | null {
  * @returns The role ID or `null`.
  */
 export function resolveRoleId(input: string): Snowflake | null {
-    return input.match(/^<#\d{1,20}>$/)?.[1] ?? resolveSnowflake(input);
+    return resolveDiscordId(input, ROLE_MENTION_REGEXP);
 }
 /**
  * Returns `true` if a URL is corresponds to a discord attachment.
