@@ -254,7 +254,7 @@ export class InteractionContext<InGuild extends boolean = boolean> extends Comma
     }
     public async reply(options: string | MessagePayloadOption, { ephemeral, thumbnailKey }: ContextReplyOptions = {}): Promise<InteractionCallbackResponse<InGuild> | Message<InGuild>> {
         if (this.deferred) {
-            return this.editReply(options);
+            return this.editReply(options, { thumbnailKey });
         }
         if (ephemeral) {
             options = makeEphemeral(options);
