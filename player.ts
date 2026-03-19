@@ -128,7 +128,7 @@ export class Track<M = null> {
             // standardized, ";" seems to be the most common delimiter which doesn't often present
             // issues when delimiting artists
             const artists = common.artist.split(';');
-            details.author ??= { name: [artists.slice(0, artists.length).join(', '), ...artists.slice(0, -1)].join(' & ') };
+            details.author ??= { name: [artists.slice(0, -1).join(', '), ...artists.slice(-1)].join(' & ') };
         }
         if (metadata?.format.duration) {
             details.duration = metadata?.format.duration * 1000;
