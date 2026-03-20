@@ -195,7 +195,7 @@ const commandFolders = readdirSync(foldersPath);
                 }
 
                 // silently ignore if owner only
-                if (command.isOwnerOnly && !isOwnerIdSet || !ctx.isOwner()) {
+                if (command.isOwnerOnly && (!isOwnerIdSet || !ctx.isOwner())) {
                     return;
                 }
 
