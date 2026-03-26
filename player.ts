@@ -115,7 +115,7 @@ export class Track<M = null> {
         validateResponse(res);
         let metadata;
         try {
-            metadata = await parseWebStream(res.body, res.headers.get('Content-Type') ?? undefined);
+            metadata = await parseWebStream(res.body, res.headers.get('Content-Type') ?? undefined, { skipPostHeaders: true });
         } catch (e) {
             console.error(e);
         }
@@ -128,7 +128,7 @@ export class Track<M = null> {
             // standardized, ";" seems to be the most common delimiter which doesn't often present
             // issues when delimiting artists
             const artists = common.artist.split(';');
-            details.author ??= { name: [artists.slice(0, -1).join(', '), ...artists.slice(-1)].join(' & ') };
+            details.author ??= { name: artists.length === 1 ? artists[0] : [artists.slice(0, -1).join(', '), ...artists.slice(-1)].join(' & ') };
         }
         if (metadata?.format.duration) {
             details.duration = metadata?.format.duration * 1000;
@@ -706,7 +706,7 @@ function validateResponse(res: Response): asserts res is Response & { body: Excl
 }
 
 // keep track of in progress downloads
-const downloads = {} as Record<string, Promise<string>>;
+const DOWNLOADS = new Map<string, Promise<string>>();// {} as Record<string, Promise<string>>;
 
 const DefaultCreateAudioResourceOptions = {
     inlineVolume: true
@@ -758,49 +758,53 @@ function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD): Prepar
     }
 }
 
-function downloadAudio(videoId: string, path: string): Promise<string> {
+async function downloadAudio(videoId: string, path: string): Promise<string> {
     // return current download or create new promise to resolve downloaded audio
-    return downloads[videoId] ??= new Promise<string>((resolve, reject) => {
-        // arguments
-        const args = [
-            '-f', 'bestaudio',
-            '-o', path,
-            '--quiet',
-            videoId.startsWith('-') ? videoURL(videoId) : videoId
-        ];
+    let promise = DOWNLOADS.get(videoId);
+    if (promise == null) {
+        DOWNLOADS.set(videoId, promise = new Promise<string>((resolve, reject) => {
+            // arguments
+            const args = [
+                '-f', 'bestaudio',
+                '-o', path,
+                '--quiet',
+                videoId.startsWith('-') ? videoURL(videoId) : videoId
+            ];
 
-        // spawn yt-dlp
-        const proc = spawn('yt-dlp', args);
+            // spawn yt-dlp
+            const proc = spawn('yt-dlp', args);
 
-        // log error messages
-        proc.stderr.pipe(process.stderr);
+            // log error messages
+            proc.stderr.pipe(process.stderr);
 
-        proc.once('error', (error) => {
-            reject(error);
-        })
+            proc.once('error', (error) => {
+                reject(error);
+            })
 
-        // resolve or reject on closes
-        proc.once('close', code => {
-            delete downloads[videoId];
-            if (code === 0) {
-                if (existsSync(path)) {
-                    resolve(path);
+            // resolve or reject on closes
+            proc.once('close', code => {
+                DOWNLOADS.delete(videoId);
+                if (code === 0) {
+                    if (existsSync(path)) {
+                        resolve(path);
+                    } else {
+                        reject('yt-dlp exited without downloading anything');
+                    }
                 } else {
-                    reject('yt-dlp exited without downloading anything');
+                    if (existsSync(path)) {
+                        rmSync(path);
+                    }
+                    reject(`yt-dlp exited with code ${code}.`);
                 }
-            } else {
-                if (existsSync(path)) {
-                    rmSync(path);
-                }
-                reject(`yt-dlp exited with code ${code}.`);
-            }
-        });
-    });
+            });
+        }));
+    }
+    return await promise;
 }
 
-function getStreamingURL(videoId: string): Promise<string> {
+async function getStreamingURL(videoId: string): Promise<string> {
     // resolve the streaming URL from yt-dlp
-    return new Promise<string>((resolve, reject) => {
+    return await new Promise<string>((resolve, reject) => {
         exec(`yt-dlp -f bestaudio --get-url ${videoId.startsWith('-') ? videoURL(videoId) : videoId}`, (error, stdout) => {
             if (error) {
                 reject(error);

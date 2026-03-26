@@ -248,7 +248,7 @@ abstract class ResourceTracker {
         if (!detailChannel) {
             // The detail channel was not found, so create it
             detailChannel = await this.createDetailChannel(categoryChannel, {
-                guild: guild ??= await this.client.guilds.fetch(this.guildId),
+                guild: guild ?? await this.client.guilds.fetch(this.guildId),
                 detail,
             });
         }
