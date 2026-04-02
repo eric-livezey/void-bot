@@ -758,7 +758,7 @@ function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD): Prepar
     }
 }
 
-async function downloadAudio(videoId: string, path: string): Promise<string> {
+function downloadAudio(videoId: string, path: string): Promise<string> {
     // return current download or create new promise to resolve downloaded audio
     let promise = DOWNLOADS.get(videoId);
     if (promise == null) {
@@ -799,12 +799,12 @@ async function downloadAudio(videoId: string, path: string): Promise<string> {
             });
         }));
     }
-    return await promise;
+    return promise;
 }
 
-async function getStreamingURL(videoId: string): Promise<string> {
+function getStreamingURL(videoId: string): Promise<string> {
     // resolve the streaming URL from yt-dlp
-    return await new Promise<string>((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
         exec(`yt-dlp -f bestaudio --get-url ${videoId.startsWith('-') ? videoURL(videoId) : videoId}`, (error, stdout) => {
             if (error) {
                 reject(error);

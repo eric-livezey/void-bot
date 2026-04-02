@@ -19,7 +19,7 @@ const INTENTS = new IntentsBitField([
     IntentsBitField.Flags.GuildMessages,
     IntentsBitField.Flags.DirectMessages,
     IntentsBitField.Flags.MessageContent,
-    IntentsBitField.Flags.DirectMessagePolls,
+    IntentsBitField.Flags.DirectMessagePolls
 ]).freeze();
 
 /**

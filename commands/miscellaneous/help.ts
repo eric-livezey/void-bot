@@ -15,7 +15,7 @@ const embed = new EmbedBuilder().addFields(
     { name: 'connect|join *[voice_channel]', value: 'Makes the bot join a voice channel, either [voice_channel] or your current voice channel.' },
     { name: 'disconnect|leave', value: "Makes the bot leave it's current voice channel." },
     { name: 'remove|rm [index]', value: 'Removes track [index] from the queue.' },
-    { name: 'move|mv [source_index] [destination index]', value: 'Moves the track at [source_index] to [destination_index]' },
+    { name: 'move|mv [source_index] [destination_index]', value: 'Moves the track at [source_index] to [destination_index]' },
     { name: 'clear', value: 'Clears the queue.' },
     { name: 'shuffle', value: 'Shuffles the queue.' },
     { name: 'loop', value: 'Loops the currently playing track.' },
@@ -23,7 +23,7 @@ const embed = new EmbedBuilder().addFields(
     { name: 'volume [percentage]', value: 'Sets the volume to the specified percentage.' },
     { name: 'viewcount [url]', value: 'Creates a channel which will track the views for the YouTube video referenced by [url].' },
     { name: 'subcount [url]', value: 'Creates a channel which will track the subscribers for the YouTube channel referenced by [url].' },
-    { name: 'evaluate|eval [expression]', value: 'Evaluates a methematic expression.' },
+    { name: 'evaluate|eval [expression]', value: 'Evaluates a mathematical expression.' },
     { name: 'help|h', value: 'Displays this message.' },
 ).toJSON();
 
