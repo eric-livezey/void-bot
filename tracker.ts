@@ -1,9 +1,7 @@
 import { _Nullable, CategoryChannel, CategoryChannelResolvable, ChannelType, Client, Events, Guild, PermissionsBitField, Snowflake, VoiceChannel } from 'discord.js';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import Innertube from 'youtubei.js/agnostic';
-import { PageHeader } from 'youtubei.js/dist/src/parser/nodes';
-import { Channel } from 'youtubei.js/dist/src/parser/youtube';
+import Innertube, { YT, YTNodes } from 'youtubei.js';
 import { getInnertubeInstance } from './innertube';
 
 /**
@@ -317,7 +315,7 @@ class ChannelTracker extends ResourceTracker {
 
     protected async fetchDetails(innertube?: Innertube) {
         innertube ??= await getInnertubeInstance();
-        const channel = await innertube.getChannel(this.resourceId) as Channel & { header?: PageHeader };
+        const channel = await innertube.getChannel(this.resourceId) as YT.Channel & { header?: YTNodes.PageHeader };
         return { title: channel.metadata.title, detail: channel.header?.content?.metadata?.metadata_rows[1]?.metadata_parts?.[0]?.text?.toString() };
     }
     public static fromJSON(client: Client, json: JSONTracker) {

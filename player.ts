@@ -8,8 +8,7 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 import sharp from 'sharp';
-import { MusicResponsiveListItem, PlaylistVideo, Video } from 'youtubei.js/dist/src/parser/nodes';
-import { VideoInfo } from 'youtubei.js/dist/src/parser/youtube';
+import { YT, YTNodes } from 'youtubei.js';
 import { getInnertubeInstance } from './innertube';
 import { channelURL, Duration, generateVideoThumbnailURL, getCachedThumbnailURL, normalizeURL, videoURL } from './utils';
 
@@ -156,7 +155,7 @@ export class Track<M = null> {
      *
      * @param info An innertube video info object.
      */
-    public static fromVideoInfo(info: VideoInfo): Track {
+    public static fromVideoInfo(info: YT.VideoInfo): Track {
         const { basic_info: videoDetails } = info;
         const videoId = videoDetails.id!;
         const prepare = createYtDlpPrepare(videoId);
@@ -176,7 +175,7 @@ export class Track<M = null> {
      * 
      * @param result A YouTube video search result.
      */
-    public static fromSearchResult(result: Video): Track {
+    public static fromSearchResult(result: YTNodes.Video): Track {
         const videoId = result.video_id;
         const prepare = createYtDlpPrepare(videoId);
         const details = {
@@ -195,7 +194,7 @@ export class Track<M = null> {
      *
      * @param item A playlist item.
      */
-    public static fromPlaylistItem(item: PlaylistVideo): Track {
+    public static fromPlaylistItem(item: YTNodes.PlaylistVideo): Track {
         const videoId = item.id;
         const prepare = createYtDlpPrepare(videoId);
         const details = {
@@ -216,7 +215,7 @@ export class Track<M = null> {
      *
      * @param item An album item.
      */
-    public static fromAlbumItem(item: MusicResponsiveListItem): Track {
+    public static fromAlbumItem(item: YTNodes.MusicResponsiveListItem): Track {
         const videoId = item.id!;
         const prepare = createYtDlpPrepare(videoId);
         const details = {

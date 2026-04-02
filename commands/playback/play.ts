@@ -1,6 +1,5 @@
 import { Attachment, channelMention, EmbedBuilder, InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
-import { YTNodes } from 'youtubei.js';
-import { Playlist } from 'youtubei.js/dist/src/parser/youtube';
+import { YT, YTNodes } from 'youtubei.js';
 import { Command } from '..';
 import { CommandContext, InteractionContext, MessageContext } from '../../context';
 import { getInnertubeInstance } from '../../innertube';
@@ -75,7 +74,7 @@ export async function connectToSpeak(ctx: CommandContext<true>) {
     }
 }
 
-export async function playPlaylist(ctx: CommandContext<true>, playlist: Playlist) {
+export async function playPlaylist(ctx: CommandContext<true>, playlist: YT.Playlist) {
     const { player } = ctx;
     let totalAdded = 0;
     do {
