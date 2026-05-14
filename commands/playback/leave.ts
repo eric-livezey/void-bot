@@ -40,4 +40,4 @@ export default {
             execute: leave,
         }
     ]
-} as Command;
+} satisfies Command<true>;

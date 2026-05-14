@@ -37,4 +37,4 @@ export default {
             execute: loop,
         }
     ]
-} as Command;
+} satisfies Command<true>;

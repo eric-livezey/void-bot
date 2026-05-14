@@ -37,4 +37,4 @@ export default {
             execute: nowPlaying,
         }
     ]
-} as Command;
+} satisfies Command<true>;

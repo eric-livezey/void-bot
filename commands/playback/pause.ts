@@ -41,4 +41,4 @@ export default {
             execute: pause,
         }
     ]
-} as Command;
+} satisfies Command<true>;

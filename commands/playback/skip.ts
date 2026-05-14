@@ -71,8 +71,8 @@ export default {
                     }
                 }
 
-                return await skip(ctx, count);
+                await skip(ctx, count);
             },
         }
     ]
-} as Command;
+} satisfies Command<true>;

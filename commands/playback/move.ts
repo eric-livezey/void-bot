@@ -7,7 +7,8 @@ export async function move(ctx: CommandContext<true>, source: number, destinatio
     if (await canManagePlayback(ctx)) {
         const { queue } = ctx.player;
         if (queue.length === 0) {
-            return await ctx.reply('The queue is empty.');
+            await ctx.reply('The queue is empty.');
+            return;
         }
         if (source < 1 || source > queue.length) {
             await ctx.reply(`${source} is not a valid index in the queue.`);
@@ -23,7 +24,7 @@ export async function move(ctx: CommandContext<true>, source: number, destinatio
         }
         const track = queue.get(source - 1);
         queue.move(source - 1, destination - 1);
-        return await ctx.reply({
+        await ctx.reply({
             content: `Moved **${track.url ? `[${track.title}](${track.url})` : track.title}** to index ${destination} in the queue.`,
             flags: [MessageFlags.SuppressEmbeds],
         });
@@ -58,7 +59,7 @@ export default {
             const source = options.getInteger('source', true);
             const destination = options.getInteger('destination', true);
 
-            return await move(ctx, source, destination);
+            await move(ctx, source, destination);
         }
     },
     message: [
@@ -87,8 +88,8 @@ export default {
                     return;
                 }
 
-                return await move(ctx, source, destination);
+                await move(ctx, source, destination);
             }
         }
     ]
-} as Command;
+} satisfies Command<true>;

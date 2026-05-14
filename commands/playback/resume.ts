@@ -41,4 +41,4 @@ export default {
             execute: resume,
         }
     ]
-} as Command;
+} satisfies Command<true>;

@@ -5,7 +5,7 @@ import { CommandContext, InteractionContext, MessageContext } from '../../contex
 export async function volume(ctx: CommandContext<true>, percentage: number) {
     const { player } = ctx;
     player.setVolume(percentage / 100);
-    ctx.reply(`Volume set to ${percentage}%.`);
+    await ctx.reply(`Volume set to ${percentage}%.`);
 }
 
 const permissions = new PermissionsBitField([
@@ -61,9 +61,9 @@ export default {
                     return;
                 }
 
-                return await volume(ctx, percentage);
+                await volume(ctx, percentage);
             },
 
         }
     ]
-} as Command;
+} satisfies Command<true>;

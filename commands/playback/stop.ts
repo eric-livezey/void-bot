@@ -32,4 +32,4 @@ export default {
             execute: stop,
         }
     ]
-} as Command;
+} satisfies Command<true>;

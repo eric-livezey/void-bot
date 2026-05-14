@@ -37,4 +37,4 @@ export default {
             execute: shuffle,
         }
     ]
-} as Command;
+} satisfies Command<true>;

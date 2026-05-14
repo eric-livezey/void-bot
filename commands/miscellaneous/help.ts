@@ -44,4 +44,4 @@ export default {
             execute: help,
         }
     ]
-} as Command;
+} satisfies Command;

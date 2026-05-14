@@ -25,4 +25,4 @@ export default {
             await play(ctx, { attachment });
         }
     }
-} as Command;
+} satisfies Command<true>;

@@ -7,14 +7,16 @@ export async function remove(ctx: CommandContext<true>, index: number) {
     if (await canManagePlayback(ctx)) {
         const { queue } = ctx.player;
         if (queue.length === 0) {
-            return await ctx.reply('The queue is empty.');
+            await ctx.reply('The queue is empty.');
+            return;
         }
         if (index < 1 || index > queue.length) {
-            return await ctx.reply(`${index} is not a valid index in the queue.`,);
+            await ctx.reply(`${index} is not a valid index in the queue.`,);
+            return;
         }
         const track = queue.remove(index - 1);
         const { embed, files } = track.toEmbed();
-        return await ctx.reply({ content: '**Removed**:', embeds: [embed], files });
+        await ctx.reply({ content: '**Removed**:', embeds: [embed], files });
     }
 }
 
@@ -40,7 +42,7 @@ export default {
 
             const index = options.getInteger('index', true);
 
-            return await remove(ctx, index);
+            await remove(ctx, index);
         }
     },
     message: [
@@ -68,8 +70,8 @@ export default {
                     return;
                 }
 
-                return await remove(ctx, index);
+                await remove(ctx, index);
             }
         }
     ]
-} as Command;
+} satisfies Command<true>;

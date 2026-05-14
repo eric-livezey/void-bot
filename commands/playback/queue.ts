@@ -72,4 +72,4 @@ export default {
             execute: queue,
         }
     ]
-} as Command;
+} satisfies Command<true>;

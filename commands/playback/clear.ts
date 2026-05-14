@@ -37,4 +37,4 @@ export default {
             execute: clear,
         }
     ]
-} as Command;
+} satisfies Command<true>;
