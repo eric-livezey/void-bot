@@ -30,12 +30,12 @@ The file should look like this:
 
 ```jsonc
 {
-  "token": "YOUR_TOKEN", // your bot's token
-  "clientId": "YOUR_CLIENT_ID", // your bot's client ID
-  "guildId": "GUILD_ID", // the ID of the guild you want to use for guild commmands
-  "ownerId": "YOUR_USER_ID", // your user ID
-  "dmChannelId": "DM_CHANNEL_ID", // channel which bot DMs should be sent to
-  "prefix": "." // prefix for message commands
+  "token": "YOUR_TOKEN",          // your bot's token                                        (required)
+  "clientId": "YOUR_CLIENT_ID",   // your bot's client ID                                    (required to install application commands)
+  "guildId": "GUILD_ID",          // the ID of the guild you want to use for guild commmands (optional)
+  "ownerId": "YOUR_USER_ID",      // your user ID                                            (optional)
+  "dmChannelId": "DM_CHANNEL_ID", // channel which bot DMs should be sent to                 (optional)
+  "prefix": "."                   // prefix for message commands                             (required for message commands)
 }
 ```
 

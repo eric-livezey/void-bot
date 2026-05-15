@@ -1,23 +1,23 @@
 import { Client as BaseClient, ClientOptions, Collection, PermissionsBitField, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandsOnlyBuilder } from 'discord.js';
 import { InteractionContext, MessageContext } from '../context';
 
-export interface Command {
-    interaction?: InteractionCommand;
-    message?: MessageCommand[];
+export interface Command<InGuild extends boolean = boolean> {
+    interaction?: InteractionCommand<InGuild>;
+    message?: MessageCommand<InGuild>[];
 }
 
-export interface InteractionCommand {
+export interface InteractionCommand<InGuild extends boolean = boolean> {
     data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder;
     isGuildCommand?: boolean;
-    execute: (ctx: InteractionContext) => Promise<void>;
+    execute: (ctx: InteractionContext<InGuild>) => Promise<void>;
 }
 
-export interface MessageCommand {
+export interface MessageCommand<InGuild extends boolean = boolean> {
     aliases: string[];
     requiredPermissions?: PermissionsBitField;
     isDmRestricted?: boolean;
     isOwnerOnly?: boolean;
-    execute: (ctx: MessageContext) => Promise<void>;
+    execute: (ctx: MessageContext<InGuild>) => Promise<void>;
 }
 
 /**
