@@ -5,6 +5,9 @@ import { resolveUserId } from '../../utils';
 
 export async function dm(ctx: CommandContext, user: User, options: MessageCreateOptions) {
     try {
+        if (ctx.isInteraction()) {
+            await ctx.deferReply();
+        }
         const channel = await user.createDM();
         await channel.send(options);
         await ctx.reply(options);

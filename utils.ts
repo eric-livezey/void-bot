@@ -479,12 +479,12 @@ export enum ThumbnailQuality {
     Standard = 'sddefault',
     MaxRes = 'maxresdefault',
 }
-const ThumbnailQualityDimensions = new Map<ThumbnailQuality, Pick<Thumbnail, 'width' | 'height'>>([
-    [ThumbnailQuality.Default, { width: 120, height: 90 }],
-    [ThumbnailQuality.Medium, { width: 320, height: 180 }],
-    [ThumbnailQuality.High, { width: 480, height: 360 }],
-    [ThumbnailQuality.Standard, { width: 640, height: 480 }],
-    [ThumbnailQuality.MaxRes, { width: 1280, height: 720 }],
+const ThumbnailQualityDimensions = new Map<ThumbnailQuality, Readonly<Pick<Thumbnail, 'width' | 'height'>>>([
+    [ThumbnailQuality.Default, Object.freeze({ width: 120, height: 90 })],
+    [ThumbnailQuality.Medium, Object.freeze({ width: 320, height: 180 })],
+    [ThumbnailQuality.High, Object.freeze({ width: 480, height: 360 })],
+    [ThumbnailQuality.Standard, Object.freeze({ width: 640, height: 480 })],
+    [ThumbnailQuality.MaxRes, Object.freeze({ width: 1280, height: 720 })]
 ]);
 /**
  * Generate a thumbnail URL for a YouTube video with a specific quality.

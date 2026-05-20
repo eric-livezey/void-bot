@@ -1,17 +1,22 @@
-import { Script } from 'node:vm';
+import { Context, Script } from 'node:vm';
 import { Command } from '..';
 import { CommandContext, MessageContext } from '../../context';
+import { MessagePayloadOption } from 'discord.js';
 
-export async function execute(ctx: CommandContext, code: string) {
+export async function execute(ctx: CommandContext, code: string, context: Context = {}) {
     try {
-        const script = new Script(code);
-        script.runInNewContext({ ctx });
-        await ctx.replyOrFollowUp('Code executed.');
+        const message: string | MessagePayloadOption = await new Script(
+            '(async () => {\n' +
+            `    ${code}\n` +
+            "    return 'Code executed.';" +
+            '})()'
+        ).runInNewContext({ ctx, ...context });
+        await ctx.replyOrFollowUp(message);
     } catch (error) {
-        if (error instanceof Error) {
+        if (Error.isError(error)) {
             await ctx.reply(error.toString(), { ephemeral: true });
         } else {
-            await ctx.reply('An error was thrown which was not an instance of Error.', { ephemeral: true });
+            await ctx.reply(`An error was thrown which was not an instance of Error.\n${error}`, { ephemeral: true });
         }
     }
 }

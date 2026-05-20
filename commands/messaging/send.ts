@@ -15,6 +15,9 @@ const CHANNEL_TYPES = [
 
 export async function send(ctx: CommandContext, channel: SendableChannels, options: MessageCreateOptions) {
     try {
+        if (ctx.isInteraction()) {
+            await ctx.deferReply();
+        }
         await channel.send(options);
         await ctx.reply('Message sent.');
     } catch (error) {
