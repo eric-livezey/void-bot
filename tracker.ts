@@ -474,22 +474,22 @@ export class TrackerManager {
     public async removeVideoTracker(guildId: string, videoId: string) {
         await this.delete(guildId, ResourceType.Video, videoId);
     }
-    public hasChannelTracker(guildId: string, videoId: string) {
-        return this.has(guildId, ResourceType.Channel, videoId);
+    public hasChannelTracker(guildId: string, channelId: string) {
+        return this.has(guildId, ResourceType.Channel, channelId);
     }
-    public getChannelTracker(guildId: string, videoId: string) {
-        return this.get(guildId, ResourceType.Channel, videoId);
+    public getChannelTracker(guildId: string, channelId: string) {
+        return this.get(guildId, ResourceType.Channel, channelId);
     }
-    public async addChannelTracker(guildId: string, videoId: string) {
-        let tracker = this.getChannelTracker(guildId, videoId);
+    public async addChannelTracker(guildId: string, channelId: string) {
+        let tracker = this.getChannelTracker(guildId, channelId);
         if (!tracker) {
-            tracker = new ChannelTracker(this.client, guildId, videoId);
+            tracker = new ChannelTracker(this.client, guildId, channelId);
             await tracker.update();
-            this.set(guildId, ResourceType.Channel, videoId, tracker);
+            this.set(guildId, ResourceType.Channel, channelId, tracker);
         }
         return tracker;
     }
-    public async removeChannelTracker(guildId: string, videoId: string) {
-        await this.delete(guildId, ResourceType.Channel, videoId);
+    public async removeChannelTracker(guildId: string, channelId: string) {
+        await this.delete(guildId, ResourceType.Channel, channelId);
     }
 }

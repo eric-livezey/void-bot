@@ -230,11 +230,11 @@ function zeroFill(value: number, maxLength = 2): string {
 }
 
 const SNOWFLAKE_PATTERN = /\d{1,20}/;
-const SNOWFLAKE_REGEXP = RegExp(`^${SNOWFLAKE_PATTERN}$`);
-const USER_MENTION_REGEXP = RegExp(`^<@(${SNOWFLAKE_PATTERN})>$`);
-const CHANNEL_MENTION_REGEXP = RegExp(`^<#(${SNOWFLAKE_PATTERN})>$`);
-const CHANNEL_URL_REGEXP = RegExp(`^https://discord\\.com/channels/${SNOWFLAKE_PATTERN}/(${SNOWFLAKE_PATTERN})$`)
-const ROLE_MENTION_REGEXP = RegExp(`^<@&(${SNOWFLAKE_PATTERN})>$`);
+const SNOWFLAKE_REGEXP = RegExp(`^${SNOWFLAKE_PATTERN.source}$`);
+const USER_MENTION_REGEXP = RegExp(`^<@(${SNOWFLAKE_PATTERN.source})>$`);
+const CHANNEL_MENTION_REGEXP = RegExp(`^<#(${SNOWFLAKE_PATTERN.source})>$`);
+const CHANNEL_URL_REGEXP = RegExp(`^https://discord\\.com/channels/${SNOWFLAKE_PATTERN.source}/(${SNOWFLAKE_PATTERN.source})$`)
+const ROLE_MENTION_REGEXP = RegExp(`^<@&(${SNOWFLAKE_PATTERN.source})>$`);
 function resolveDiscordId(input: string, ...expressions: RegExp[]): string | null {
     let match: RegExpMatchArray | null;
     return expressions.some(exp => match = input.match(exp)) ? match![1] : resolveSnowflake(input);

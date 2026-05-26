@@ -1,7 +1,7 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, CreateAudioResourceOptions, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 import { APIEmbed, APIEmbedField, AttachmentBuilder, EmbedBuilder, RestOrArray, Snowflake } from 'discord.js';
 import { parseWebStream } from 'music-metadata';
-import { exec, spawn } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
@@ -13,7 +13,7 @@ import { getInnertubeInstance } from './innertube';
 import { channelURL, Duration, generateVideoThumbnailURL, getCachedThumbnailURL, normalizeURL, videoURL } from './utils';
 
 const AUDIO_CACHE_DIR = path.join('cache', 'audio');
-const SHOULD_DOWNLOAD = true;
+const SHOULD_DOWNLOAD = false;
 const MAX_RETRIES = 5;
 
 export interface TrackAuthor {
@@ -40,7 +40,7 @@ export interface TrackOptions {
     }
 }
 
-export type PrepareFunction<M = null> = () => Promise<AudioResource<M>>;
+export type PrepareFunction<M = null> = () => Promise<AudioResource<M>> | AudioResource<M>;
 
 /**
  * Represents a track to played by a player.
@@ -725,15 +725,12 @@ function createDownloadPrepare(id: string, fn: (path: string) => Promise<string>
     }
 }
 
-function createStreamPrepare(id: string, fn: () => Promise<Readable>): PrepareFunction {
-    const file = path.join(AUDIO_CACHE_DIR, `${id}.webm`);
-    return async function prepare() {
-        if (existsSync(file)) {
-            // use prior downloaded tracks even in streams as they are more reliable
-            return createAudioResource(file, DefaultCreateAudioResourceOptions);
-        } else {
-            return fn().then(stream => createAudioResource(stream, DefaultCreateAudioResourceOptions));
-        }
+function createStreamPrepare(fn: () => Promise<Readable> | Readable): PrepareFunction {
+    return function () {
+        const result = fn();
+        return result instanceof Promise
+            ? result.then(stream => createAudioResource(stream, DefaultCreateAudioResourceOptions))
+            : createAudioResource(result, DefaultCreateAudioResourceOptions);
     }
 }
 
@@ -753,7 +750,7 @@ function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD): Prepar
             throw new Error('Audio download failed after 5 attempts.');
         });
     } else {
-        return createStreamPrepare(videoId, () => getStreamingURL(videoId).then(url => fetch(url)).then(res => Readable.fromWeb(res.body! as ReadableStream)));
+        return createStreamPrepare(() => getYtDlpStream(videoId));
     }
 }
 
@@ -767,7 +764,7 @@ function downloadAudio(videoId: string, path: string): Promise<string> {
                 '-f', 'bestaudio',
                 '-o', path,
                 '--quiet',
-                videoId.startsWith('-') ? videoURL(videoId) : videoId
+                videoId.startsWith('-') ? videoURL(videoId, true) : videoId
             ];
 
             // spawn yt-dlp
@@ -801,15 +798,33 @@ function downloadAudio(videoId: string, path: string): Promise<string> {
     return promise;
 }
 
-function getStreamingURL(videoId: string): Promise<string> {
-    // resolve the streaming URL from yt-dlp
-    return new Promise<string>((resolve, reject) => {
-        exec(`yt-dlp -f bestaudio --get-url ${videoId.startsWith('-') ? videoURL(videoId) : videoId}`, (error, stdout) => {
-            if (error) {
-                reject(error);
-            } else {
-                resolve(stdout.trim());
-            }
-        });
+function getYtDlpStream(videoId: string) {
+    // return current download or create new promise to resolve downloaded audio
+    // arguments
+    const args = [
+        '-f', 'bestaudio',
+        '-o', '-',
+        '--quiet',
+        videoId.startsWith('-') ? videoURL(videoId, true) : videoId
+    ];
+
+    // spawn yt-dlp
+    const proc = spawn('yt-dlp', args);
+
+    // log error messages
+    proc.stderr.pipe(process.stderr);
+
+    const stream = proc.stdout;
+    proc.on('error', (error) => {
+        stream.emit('error', error);
     });
+
+    // resolve or reject on closes
+    proc.once('close', code => {
+        if (code !== 0) {
+            stream.emit('error', `yt-dlp exited with code ${code}.`);
+        }
+    });
+
+    return stream;
 }
