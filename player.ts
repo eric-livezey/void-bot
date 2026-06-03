@@ -419,10 +419,21 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
      * The player's {@link Queue} of tracks.
      */
     public readonly queue: Queue;
+    _loop: boolean;
     /**
      * Whether the player should loop the current track.
      */
-    public loop: boolean;
+    public set loop(value: boolean) {
+        this._loop = value;
+        const nowPlaying = this.nowPlaying;
+        if (value && nowPlaying) {
+            nowPlaying.reset();
+            nowPlaying.prepare();
+        }
+    }
+    public get loop(): boolean {
+        return this._loop;
+    }
     private static readonly cache = new Map<Snowflake, Player>();
     private nowPlayingTrack: Track<unknown> | null;
     private volume: number;
@@ -440,7 +451,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         super();
         this.guildId = guildId;
         this.queue = new Queue();
-        this.loop = false;
+        this._loop = false;
         this.nowPlayingTrack = null;
         this.volume = 1;
         this.connection = null;
@@ -653,7 +664,9 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
             return;
         }
         if (this.loop && this.isPlaying()) {
-            this.nowPlaying.reset();
+            if (this.nowPlaying.isResolved()) {
+                this.nowPlaying.reset();
+            }
             await this.play(this.nowPlaying).catch(() => { this.skip() });
         }
         else {
@@ -687,6 +700,11 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         this.audioPlayer.play(resource);
         if (this.isPaused()) {
             this.unpause();
+        }
+        if (this.loop) {
+            // If looping, prepare the track again
+            track.reset();
+            track.resolve();
         }
     }
 }
