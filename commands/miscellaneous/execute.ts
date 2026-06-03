@@ -11,7 +11,7 @@ export async function execute(ctx: CommandContext, code: string, context: Contex
             "    return 'Code executed.';" +
             '})()',
             { importModuleDynamically: constants.USE_MAIN_CONTEXT_DEFAULT_LOADER }
-        ).runInNewContext({ ctx, ...context }, {});
+        ).runInNewContext({ ctx, ...context });
         await ctx.replyOrFollowUp(message);
     } catch (error) {
         if (Error.isError(error)) {
