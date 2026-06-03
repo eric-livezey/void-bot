@@ -812,7 +812,7 @@ function getYtDlpStream(videoId: string) {
     const proc = spawn('yt-dlp', args);
 
     // log error messages
-    proc.stderr.pipe(process.stderr);
+    // proc.stderr.pipe(process.stderr);
 
     const stream = proc.stdout;
     proc.on('error', (error) => {
