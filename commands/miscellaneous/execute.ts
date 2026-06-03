@@ -1,4 +1,4 @@
-import { Context, Script } from 'node:vm';
+import { Context, Script, constants } from 'node:vm';
 import { Command } from '..';
 import { CommandContext, MessageContext } from '../../context';
 import { MessagePayloadOption } from 'discord.js';
@@ -9,8 +9,9 @@ export async function execute(ctx: CommandContext, code: string, context: Contex
             '(async () => {\n' +
             `    ${code}\n` +
             "    return 'Code executed.';" +
-            '})()'
-        ).runInNewContext({ ctx, ...context });
+            '})()',
+            { importModuleDynamically: constants.USE_MAIN_CONTEXT_DEFAULT_LOADER }
+        ).runInNewContext({ ctx, ...context }, {});
         await ctx.replyOrFollowUp(message);
     } catch (error) {
         if (Error.isError(error)) {
