@@ -17,7 +17,7 @@
     "discord.js": "^14.26.4",
     "mathjs": "^15.2.0",
     "music-metadata": "^11.12.3",
-    "opusscript": "^0.0.8",
+    "opusscript": "^0.1.1",
     "sharp": "^0.34.5",
     "youtubei.js": "^17.0.1"
   },
