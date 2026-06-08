@@ -16,7 +16,7 @@
     "@snazzah/davey": "^0.1.11",
     "discord.js": "^14.26.4",
     "mathjs": "^15.2.0",
-    "music-metadata": "^11.12.3",
+    "music-metadata": "^11.13.0",
     "opusscript": "^0.0.8",
     "sharp": "^0.34.5",
     "youtubei.js": "^17.0.1"
