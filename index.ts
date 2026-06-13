@@ -121,7 +121,7 @@ const commandFolders = readdirSync(foldersPath);
                             if ('aliases' in message && 'execute' in message) {
                                 for (const alias of message.aliases) {
                                     // add the command to the map
-                                    messageCommands.set(alias, message);
+                                    messageCommands.set(alias.toLowerCase(), message);
                                 }
                             } else {
                                 console.warn(`[WARNING] The command at ${filePath} is missing a required 'messages[number].aliases' or 'messages[number].execute' property.`);
@@ -174,7 +174,7 @@ const commandFolders = readdirSync(foldersPath);
                 // create context
                 const ctx = new MessageContext(message, prefix);
                 // find command
-                const command = client.messageCommands.get(ctx.commandName);
+                const command = client.messageCommands.get(ctx.commandName.toLowerCase());
 
                 // invalid command
                 if (!command) {

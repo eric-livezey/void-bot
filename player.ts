@@ -719,7 +719,7 @@ function validateResponse(res: Response): asserts res is Response & { body: Excl
         throw new Error(`Request to ${res.url} did not return a response body.`);
     }
     const contentType = res.headers.get('Content-Type');
-    if (!contentType || !contentType?.startsWith('audio/') && !contentType.startsWith('video/')) {
+    if (!contentType || !contentType.startsWith('audio/') && !contentType.startsWith('video/')) {
         throw new Error(`Unsupported Mime Type: ${contentType}`);
     }
 }
