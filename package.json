@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@discordjs/voice": "^0.19.2",
-    "@snazzah/davey": "^0.1.11",
+    "@snazzah/davey": "^0.1.12",
     "discord.js": "^14.26.4",
     "mathjs": "^15.2.0",
     "music-metadata": "^11.13.0",
