@@ -1,4 +1,4 @@
-import { ActionRowBuilder, APIMessageTopLevelComponent, ButtonBuilder, ButtonStyle, InteractionContextType, JSONEncodable, MessageActionRowComponentBuilder, MessagePayloadOption, SlashCommandBuilder } from 'discord.js';
+import { ActionRowBuilder, APIMessageTopLevelComponent, ButtonBuilder, ButtonStyle, InteractionContextType, JSONEncodable, MessageActionRowComponentBuilder, MessagePayloadOption, SlashCommandBuilder, TextDisplayBuilder } from 'discord.js';
 import { Command } from '..';
 import { CommandContext } from '../../context';
 import { Player } from '../../player';
@@ -14,7 +14,7 @@ export function generateQueueMessage(player: Player, page: number): MessagePaylo
     }
     const message = player.generateQueueMessage(page);
     if (message === null) {
-        return { flags: 0 as number, content: 'Nothing is playing.' };
+        return { components: [new TextDisplayBuilder().setContent('Nothing is playing.')] };
     }
     const buttons = [];
     if (page > 0) {
