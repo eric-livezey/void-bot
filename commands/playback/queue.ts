@@ -4,7 +4,6 @@ import { CommandContext } from '../../context';
 import { Player } from '../../player';
 import { canViewPlayback } from './play';
 
-// NOTE: Maybe use components v2 instead of embed?
 export function generateQueueMessage(player: Player, page: number): MessagePayloadOption {
     const n = Math.max(Math.ceil(player.queue.length / 20) - 1, 0);
     if ((page + 1) * 20 > player.queue.length) {
@@ -15,7 +14,7 @@ export function generateQueueMessage(player: Player, page: number): MessagePaylo
     }
     const message = player.generateQueueMessage(page);
     if (message === null) {
-        return { content: 'Nothing is playing.' };
+        return { flags: 0 as number, content: 'Nothing is playing.' };
     }
     const buttons = [];
     if (page > 0) {

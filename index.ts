@@ -245,18 +245,22 @@ const commandFolders = readdirSync(foldersPath);
             const { customId, channel } = interaction;
             // resolve parameters from custom ID
             const [type, argument] = customId.split(':');
-            switch (type) {
-                case 'QUEUE_PAGE':
-                    // queue page update
-                    if (channel?.isTextBased() && interaction.inGuild()) {
-                        await interaction.update(MessagePayload.create(channel, generateQueueMessage(Player.of(interaction.guildId), Number(argument))));
-                    }
-                    break;
-                case 'GUILDS_LIST_PAGE':
-                    if (channel?.isTextBased) {
-                        await interaction.update(MessagePayload.create(channel, generateGuildsListMessage(interaction.client.guilds.cache, Number(argument))));
-                    }
-                    break;
+            try {
+                switch (type) {
+                    case 'QUEUE_PAGE':
+                        // queue page update
+                        if (channel?.isTextBased() && interaction.inGuild()) {
+                            await interaction.update(MessagePayload.create(channel, generateQueueMessage(Player.of(interaction.guildId), Number(argument))));
+                        }
+                        break;
+                    case 'GUILDS_LIST_PAGE':
+                        if (channel?.isTextBased) {
+                            await interaction.update(MessagePayload.create(channel, generateGuildsListMessage(interaction.client.guilds.cache, Number(argument))));
+                        }
+                        break;
+                }
+            } catch (e) {
+                console.error(e);
             }
         } else if (interaction.isAutocomplete()) { // autocomplete
             const command = client.commands.get(interaction.commandName);
