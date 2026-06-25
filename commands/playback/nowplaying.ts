@@ -7,8 +7,7 @@ export async function nowPlaying(ctx: CommandContext<true>) {
     if (await canViewPlayback(ctx)) {
         const track = ctx.player.nowPlaying;
         if (track) {
-            const { embed, files } = track.toEmbed();
-            await ctx.reply({ content: '**Now Playing**:', embeds: [embed], files });
+            await ctx.reply({ content: '**Now Playing**:', ...track.toMessage() });
         } else {
             await ctx.reply('Nothing is playing.');
         }
@@ -17,7 +16,7 @@ export async function nowPlaying(ctx: CommandContext<true>) {
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak,
+    PermissionsBitField.Flags.Speak
 ]).freeze();
 
 export default {

@@ -8,6 +8,7 @@ import { InteractionContext, MessageContext } from './context';
 import { Player } from './player';
 import { TrackerManager } from './tracker';
 import { ConfigOptions, createVoiceConnection } from './utils';
+import { generateGuildsListMessage } from './commands/miscellaneous/guilds';
 
 /**
  * Client gateway intents.
@@ -67,10 +68,9 @@ const log = console.log;
 console.log = function (...data) { log(`[${new Date().toLocaleString()}]`, ...data) };
 
 // config
-const { token, prefix, ownerId, dmChannelId } = config as ConfigOptions;
+const { token, prefix, dmChannelId } = config as ConfigOptions;
 const isTokenSet = token != null;
 const isPrefixSet = prefix != null;
-const isOwnerIdSet = ownerId != null;
 const isDmChannelIdSet = dmChannelId != null;
 
 if (!isTokenSet) {
@@ -195,7 +195,7 @@ const commandFolders = readdirSync(foldersPath);
                 }
 
                 // silently ignore if owner only
-                if (command.isOwnerOnly && (!isOwnerIdSet || !ctx.isOwner())) {
+                if (command.isOwnerOnly && !ctx.isOwner()) {
                     return;
                 }
 
@@ -217,8 +217,7 @@ const commandFolders = readdirSync(foldersPath);
 
     // when an interaction is created
     client.on(Events.InteractionCreate, async interaction => {
-        // commands
-        if (interaction.isChatInputCommand()) {
+        if (interaction.isChatInputCommand()) {  // commands
             // create context
             const ctx = new InteractionContext(interaction);
             // find command
@@ -242,9 +241,7 @@ const commandFolders = readdirSync(foldersPath);
                     console.error(e);
                 }
             }
-        }
-        // components
-        if (interaction.isMessageComponent()) {
+        } else if (interaction.isMessageComponent()) { // components
             const { customId, channel } = interaction;
             // resolve parameters from custom ID
             const [type, argument] = customId.split(':');
@@ -252,9 +249,32 @@ const commandFolders = readdirSync(foldersPath);
                 case 'QUEUE_PAGE':
                     // queue page update
                     if (channel?.isTextBased() && interaction.inGuild()) {
-                        await interaction.update(MessagePayload.create(channel, generateQueueMessage(Player.of(interaction.guildId), parseInt(argument))));
+                        await interaction.update(MessagePayload.create(channel, generateQueueMessage(Player.of(interaction.guildId), Number(argument))));
                     }
                     break;
+                case 'GUILDS_LIST_PAGE':
+                    if (channel?.isTextBased) {
+                        await interaction.update(MessagePayload.create(channel, generateGuildsListMessage(interaction.client.guilds.cache, Number(argument))));
+                    }
+                    break;
+            }
+        } else if (interaction.isAutocomplete()) { // autocomplete
+            const command = client.commands.get(interaction.commandName);
+
+            if (!command) {
+                console.error(`No command matching ${interaction.commandName} was found.`);
+                return;
+            }
+
+            if (!command.autocomplete) {
+                console.error("The matching command does not an 'autocomplete' method");
+                return;
+            }
+
+            try {
+                await command.autocomplete(interaction);
+            } catch (error) {
+                console.error(error);
             }
         }
     });

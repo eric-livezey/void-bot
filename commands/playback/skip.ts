@@ -9,8 +9,7 @@ export async function skip(ctx: CommandContext<true>, count?: number) {
         if (count == null) {
             const track = await player.skip();
             if (track) {
-                const { embed, files } = track.toEmbed();
-                await ctx.reply({ content: '**Skipped**:', embeds: [embed], files });
+                await ctx.reply({ content: '**Skipped**:', ...track.toMessage() });
             } else {
                 await ctx.reply('Nothing is playing.');
             }
@@ -28,7 +27,7 @@ export async function skip(ctx: CommandContext<true>, count?: number) {
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak,
+    PermissionsBitField.Flags.Speak
 ]).freeze();
 
 export default {

@@ -1,7 +1,7 @@
+import { MessagePayloadOption } from 'discord.js';
 import { Context, Script, constants } from 'node:vm';
 import { Command } from '..';
 import { CommandContext, MessageContext } from '../../context';
-import { MessagePayloadOption } from 'discord.js';
 
 export async function execute(ctx: CommandContext, code: string, context: Context = {}) {
     try {

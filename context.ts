@@ -1,7 +1,10 @@
-import { ChatInputCommandInteraction, Client, Guild, GuildMember, GuildTextBasedChannel, If, InteractionCallbackResponse, InteractionReplyOptions, Message, MessageFlags, MessageFlagsBitField, MessageFlagsResolvable, MessagePayload, MessagePayloadOption, OmitPartialGroupDMChannel, PartialGroupDMChannel, Snowflake, TextBasedChannel, User } from 'discord.js';
+import { BitFieldResolvable, ChatInputCommandInteraction, Client, Guild, GuildMember, GuildTextBasedChannel, If, InteractionCallbackResponse, InteractionReplyOptions, Message, MessageFlagsBitField, MessageFlagsString, MessagePayload, MessagePayloadOption, OmitPartialGroupDMChannel, PartialGroupDMChannel, Snowflake, TextBasedChannel, User } from 'discord.js';
 import { Player } from './player';
 import { TrackerManager } from './tracker';
 import { cacheThumbnailURL, isOwner, normalizeURL } from './utils';
+
+type MessageOptions = MessagePayloadOption;
+type MessageOptionsResolvable = string | MessageOptions;
 
 function split(str: string, regex: RegExp, limit?: number): string[] {
     const result = [];
@@ -16,12 +19,21 @@ function split(str: string, regex: RegExp, limit?: number): string[] {
     return result;
 }
 
-function makeEphemeral(options: string | MessagePayloadOption): MessagePayloadOption {
+function resolveMessageOptions(options: MessageOptionsResolvable): MessageOptions {
     if (typeof options === 'string') {
-        return { content: options, flags: MessageFlags.Ephemeral };
+        return { content: options };
     }
-    options.flags = new MessageFlagsBitField(options.flags as MessageFlagsResolvable | undefined).add(MessageFlagsBitField.Flags.Ephemeral).bitfield;
     return options;
+}
+
+function makeEphemeral(options: MessageOptionsResolvable): MessageOptions {
+    options = resolveMessageOptions(options);
+    // NOTE: this cast is necessary due to some small isues with discord.js's typings
+    return {
+        ...options,
+        flags: new MessageFlagsBitField(options.flags as BitFieldResolvable<MessageFlagsString, number> | undefined)
+            .add(MessageFlagsBitField.Flags.Ephemeral).bitfield
+    };
 }
 
 function cacheMessageThumbnailURL(key: string, message: Message) {
@@ -139,28 +151,28 @@ export abstract class CommandContext<InGuild extends boolean = boolean> {
     /**
      * Replies to the command.
      */
-    public abstract reply(options: string | MessagePayloadOption, additionalOptions?: ContextReplyOptions): Promise<InteractionCallbackResponse<InGuild> | Message<InGuild>>;
+    public abstract reply(options: MessageOptionsResolvable, additionalOptions?: ContextReplyOptions): Promise<InteractionCallbackResponse<InGuild> | Message<InGuild>>;
     /**
      * Creates a follow up reply to the command.
      */
-    public abstract followUp(options: string | MessagePayloadOption, ephemeral?: boolean): Promise<Message<InGuild>>;
+    public abstract followUp(options: MessageOptionsResolvable, ephemeral?: boolean): Promise<Message<InGuild>>;
     /**
      * Edits the existing reply to the command.
      */
-    public abstract editReply(options: string | MessagePayloadOption, additionalOptions?: ContextEditReplyOptions): Promise<Message<InGuild>>;
+    public abstract editReply(options: MessageOptionsResolvable, additionalOptions?: ContextEditReplyOptions): Promise<Message<InGuild>>;
     /**
      * Replies to the command, or creates a follow up message if the command has already been replied to.
      */
-    public replyOrFollowUp(options: string | MessagePayloadOption, ephemeral?: boolean) {
+    public replyOrFollowUp(options: MessageOptionsResolvable, ephemeral?: boolean) {
         return this.repliable ? this.reply(options, { ephemeral }) : this.followUp(options, ephemeral);
     }
     /**
      * Replies to the command, or edits the reply if the command has already been replied to.
      */
-    public replyOrEditReply(options: string | MessagePayloadOption, ephemeral?: boolean) {
+    public replyOrEditReply(options: MessageOptionsResolvable, ephemeral?: boolean) {
         return this.repliable ? this.reply(options, { ephemeral }) : this.editReply(options);
     }
-    protected resolveMessagePayload(options: string | MessagePayloadOption) {
+    protected resolveMessagePayload(options: MessageOptionsResolvable) {
         return MessagePayload.create(this.channel, options);
     }
 }
@@ -200,7 +212,7 @@ export class MessageContext<InGuild extends boolean = boolean> extends CommandCo
     public getArguments(limit?: number): string[] {
         return split(this.content, /\s+/g, limit);
     }
-    public async reply(options: string | MessagePayloadOption, { thumbnailKey }: ContextReplyOptions = {}): Promise<Message<InGuild>> {
+    public async reply(options: MessageOptionsResolvable, { thumbnailKey }: ContextReplyOptions = {}): Promise<Message<InGuild>> {
         const payload = this.resolveMessagePayload(options);
         const message = this.response = await this.channel.send(payload) as Message<InGuild>;
         if (thumbnailKey != null) {
@@ -208,10 +220,10 @@ export class MessageContext<InGuild extends boolean = boolean> extends CommandCo
         }
         return message;
     }
-    public async followUp(options: string | MessagePayloadOption): Promise<Message<InGuild>> {
+    public async followUp(options: MessageOptionsResolvable): Promise<Message<InGuild>> {
         return this.response = await this.reply(options);
     }
-    public async editReply(options: string | MessagePayloadOption, { thumbnailKey }: ContextEditReplyOptions = {}): Promise<Message<InGuild>> {
+    public async editReply(options: MessageOptionsResolvable, { thumbnailKey }: ContextEditReplyOptions = {}): Promise<Message<InGuild>> {
         const payload = this.resolveMessagePayload(options);
         const message = this.response = await this.response!.edit(payload);
         if (thumbnailKey != null) {
@@ -252,14 +264,15 @@ export class InteractionContext<InGuild extends boolean = boolean> extends Comma
             await this.interaction.deferReply();
         }
     }
-    public async reply(options: string | MessagePayloadOption, { ephemeral, thumbnailKey }: ContextReplyOptions = {}): Promise<InteractionCallbackResponse<InGuild> | Message<InGuild>> {
+    public async reply(options: MessageOptionsResolvable, { ephemeral, thumbnailKey }: ContextReplyOptions = {}): Promise<InteractionCallbackResponse<InGuild> | Message<InGuild>> {
         if (this.deferred) {
             return this.editReply(options, { thumbnailKey });
         }
         if (ephemeral) {
             options = makeEphemeral(options);
         }
-        (options as InteractionReplyOptions).withResponse = true;
+        options = resolveMessageOptions(options) as InteractionReplyOptions;
+        options.withResponse = true;
         const payload = this.resolveMessagePayload(options);
         const response = (await this.interaction.reply(payload) as unknown as InteractionCallbackResponse<InGuild>);
         let message;
@@ -268,14 +281,14 @@ export class InteractionContext<InGuild extends boolean = boolean> extends Comma
         }
         return response;
     }
-    public async followUp(options: string | MessagePayloadOption, ephemeral?: boolean): Promise<Message<InGuild>> {
+    public async followUp(options: MessageOptionsResolvable, ephemeral?: boolean): Promise<Message<InGuild>> {
         if (ephemeral) {
             options = makeEphemeral(options);
         }
         const payload = this.resolveMessagePayload(options);
         return await this.interaction.followUp(payload) as Message<InGuild>;
     }
-    public async editReply(options: string | MessagePayloadOption, { thumbnailKey }: ContextEditReplyOptions = {}): Promise<Message<InGuild>> {
+    public async editReply(options: MessageOptionsResolvable, { thumbnailKey }: ContextEditReplyOptions = {}): Promise<Message<InGuild>> {
         const payload = this.resolveMessagePayload(options);
         const message = await this.interaction.editReply(payload) as Message<InGuild>;
         if (thumbnailKey != null) {

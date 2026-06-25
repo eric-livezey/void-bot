@@ -16,7 +16,7 @@ function getVideoIdFromSearchResult(result: YTNodes.MusicResponsiveListItem) {
         ...result.menu?.contents
             .filterType(YTNodes.MenuNavigationItem)
             .flatMap(n => [n.endpoint, n.endpoint.command]) ?? []
-    ].find(e => e?.is(YTNodes.WatchEndpoint))?.as(YTNodes.WatchEndpoint).buildRequest().videoId;
+    ].find(e => e?.is(YTNodes.WatchEndpoint) ?? false)?.as(YTNodes.WatchEndpoint).buildRequest().videoId;
 }
 
 export async function playMusic(ctx: CommandContext<true>, query: string) {
@@ -42,7 +42,7 @@ export async function playMusic(ctx: CommandContext<true>, query: string) {
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak,
+    PermissionsBitField.Flags.Speak
 ]).freeze();
 
 export default {

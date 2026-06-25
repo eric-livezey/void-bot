@@ -12,8 +12,7 @@ export async function info(ctx: CommandContext<true>, index: number) {
         if (index <= player.queue.length) {
             const track = player.queue.get(index - 1);
             if (track) {
-                const { embed, files } = track.toEmbed();
-                await ctx.reply({ embeds: [embed], files });
+                await ctx.reply(track.toMessage());
             } else {
                 await ctx.reply('`index` must be less than or equal to the length of the queue.', { ephemeral: true });
             }
@@ -25,7 +24,7 @@ export async function info(ctx: CommandContext<true>, index: number) {
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak,
+    PermissionsBitField.Flags.Speak
 ]).freeze();
 
 export default {

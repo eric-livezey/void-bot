@@ -26,14 +26,14 @@ export async function move(ctx: CommandContext<true>, source: number, destinatio
         queue.move(source - 1, destination - 1);
         await ctx.reply({
             content: `Moved **${track.url ? `[${track.title}](${track.url})` : track.title}** to index ${destination} in the queue.`,
-            flags: [MessageFlags.SuppressEmbeds],
+            flags: [MessageFlags.SuppressEmbeds]
         });
     }
 }
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak,
+    PermissionsBitField.Flags.Speak
 ]).freeze();
 
 export default {

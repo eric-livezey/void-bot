@@ -79,13 +79,12 @@ export async function playPlaylist(ctx: CommandContext<true>, playlist: YT.Playl
     let totalAdded = 0;
     do {
         for (const video of playlist.videos) {
-            if (video.is(YTNodes.PlaylistVideo) && video.is_playable) {
+            if (video.is(YTNodes.PlaylistVideo) && video.is_playable || video.is(YTNodes.LockupView)) {
                 const track = Track.fromPlaylistItem(video);
                 const index = await player.enqueue(track);
                 // NOTE: Failed tracks are skipped if prepared during enqueue
                 if (index === 0) {
-                    const { embed, files } = track.toEmbed();
-                    await ctx.reply({ content: '**Now Playing**:', embeds: [embed], files });
+                    await ctx.reply({ content: '**Now Playing**:', ...track.toMessage() });
                 } else if (index > 0) {
                     totalAdded++;
                 }
@@ -112,11 +111,15 @@ export async function playTrack(ctx: CommandContext<true>, track: Track, thumbna
     if (position < 0) {
         await ctx.reply(`An error occurred while attempting to play the video.`);
     } else if (position === 0) {
-        const { embed, files } = track.toEmbed();
-        await ctx.reply({ content: '**Now Playing**:', embeds: [embed], files }, { thumbnailKey });
+        await ctx.reply({ content: '**Now Playing**:', ...track.toMessage() }, { thumbnailKey });
     } else {
-        const { embed, files } = track.toEmbed({ name: 'Position', value: position.toLocaleString(), inline: true });
-        await ctx.reply({ content: '**Added to the Queue**:', embeds: [embed], files }, { thumbnailKey });
+        await ctx.reply(
+            {
+                content: '**Added to the Queue**:',
+                ...track.toMessage({ name: 'Position', value: position.toLocaleString(), inline: true })
+            },
+            { thumbnailKey }
+        );
     }
 }
 
@@ -186,7 +189,7 @@ export async function play(ctx: CommandContext<true>, { input, attachment }: { i
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak,
+    PermissionsBitField.Flags.Speak
 ]).freeze();
 
 export default {

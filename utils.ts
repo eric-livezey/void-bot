@@ -458,6 +458,17 @@ export function playlistURL(playlistId: string): string {
 export function channelURL(channelId: string): string {
     return `https://www.youtube.com/channel/${encodeURIComponent(channelId)}`;
 }
+const YT_DURATION_PART_VALUES = [
+    1,    // seconds
+    60,   // minutes
+    3600, // hours
+    86400 // days
+];
+export function parseYTDuration(text: string) {
+    return text.split(':')
+        .reverse()
+        .reduce((seconds, part, index) => seconds + Number(part) * YT_DURATION_PART_VALUES[index], 0) * 1000;
+}
 export interface Thumbnail {
     /**
      * The image's URL.

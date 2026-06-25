@@ -1,5 +1,5 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, CreateAudioResourceOptions, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
-import { APIEmbed, APIEmbedField, AttachmentBuilder, EmbedBuilder, RestOrArray, Snowflake } from 'discord.js';
+import { APIEmbedField, AttachmentBuilder, Colors, ContainerBuilder, EmbedBuilder, MessageFlags, MessagePayloadOption, RestOrArray, Snowflake, TextDisplayBuilder } from 'discord.js';
 import { parseWebStream } from 'music-metadata';
 import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -10,11 +10,12 @@ import { ReadableStream } from 'node:stream/web';
 import sharp from 'sharp';
 import { YT, YTNodes } from 'youtubei.js';
 import { getInnertubeInstance } from './innertube';
-import { channelURL, Duration, generateVideoThumbnailURL, getCachedThumbnailURL, normalizeURL, videoURL } from './utils';
+import { channelURL, Duration, generateVideoThumbnailURL, getCachedThumbnailURL, normalizeURL, parseYTDuration, videoURL } from './utils';
 
 const AUDIO_CACHE_DIR = path.join('cache', 'audio');
 const SHOULD_DOWNLOAD = false;
 const MAX_RETRIES = 5;
+const MAX_PAGE_SIZE = 20;
 
 export interface TrackAuthor {
     /**
@@ -194,7 +195,10 @@ export class Track<M = null> {
      *
      * @param item A playlist item.
      */
-    public static fromPlaylistItem(item: YTNodes.PlaylistVideo): Track {
+    public static fromPlaylistItem(item: YTNodes.PlaylistVideo | YTNodes.LockupView): Track {
+        if (item.is(YTNodes.LockupView)) {
+            return this.fromLockupView(item);
+        }
         const videoId = item.id;
         const prepare = createYtDlpPrepare(videoId);
         const details = {
@@ -207,6 +211,33 @@ export class Track<M = null> {
             }
         } satisfies TrackOptions;
         return new Track(prepare, item.title.toString(), details);
+    }
+    public static fromLockupView(item: YTNodes.LockupView): Track {
+        const videoId = item.content_id;
+        const prepare = createYtDlpPrepare(videoId);
+        let duration;
+        const contentImage = item.content_image;
+        if (contentImage?.is(YTNodes.ThumbnailView)) {
+            const formattedDuration = contentImage.overlays.firstOfType(YTNodes.ThumbnailBottomOverlayView)?.badges.first()?.text;
+            if (formattedDuration != null) {
+                duration = parseYTDuration(formattedDuration);
+            }
+        }
+        let author;
+        const authorText = item.metadata?.metadata?.metadata_rows[0]?.metadata_parts?.[0]?.text;
+        if (authorText != null) {
+            author = {
+                name: authorText.toString(),
+                url: authorText.endpoint?.toURL()
+            };
+        }
+        const details = {
+            url: videoURL(videoId, true),
+            thumbnail: generateVideoThumbnailURL(videoId),
+            duration,
+            author
+        } satisfies TrackOptions;
+        return new Track(prepare, item.metadata?.title.toString() ?? 'Unknown', details);
     }
     /**
      * Creates a track from an album item.
@@ -270,12 +301,30 @@ export class Track<M = null> {
         }
         return this.resource as AudioResource<M>;
     }
+    get formattedDuration() {
+        if (this.duration === null && (!this.isResolved() || !this.resource.started)) {
+            return null;
+        }
+        let formattedDuration = this.duration != null ? Duration.format(this.duration) : 'unknown';
+        if (this.isResolved() && this.resource.started) {
+            formattedDuration = `${Duration.format(this.resource.playbackDuration)}/${formattedDuration}`;
+        }
+        return formattedDuration;
+    }
+    get compactLines() {
+        const lines = [`**[${this.title}](${this.url})**`];
+        const formattedDuration = this.formattedDuration;
+        if (formattedDuration !== null) {
+            lines.push(formattedDuration);
+        }
+        return lines;
+    }
     /**
      * Returns a APIEmbed representation of the track.
      *
      * @param fields Additional embed fields.
      */
-    public toEmbed(...fields: RestOrArray<APIEmbedField>): { embed: APIEmbed; files: AttachmentBuilder[]; } {
+    public toMessage(...fields: RestOrArray<APIEmbedField>): MessagePayloadOption {
         const eb = new EmbedBuilder();
         const files = [] as AttachmentBuilder[];
         eb.setTitle(this.title);
@@ -298,16 +347,14 @@ export class Track<M = null> {
                 eb.setThumbnail(this.thumbnail);
             }
         }
-        if (this.duration != null || this.isResolved() && this.resource.started) {
-            let duration = this.duration != null ? Duration.format(this.duration) : 'unknown';
-            if (this.isResolved() && this.resource.started) {
-                duration = `${Duration.format(this.resource.playbackDuration)}/${duration}`;
-            }
-            eb.addFields({ name: 'Duration', value: duration, inline: true });
+        const formattedDuration = this.formattedDuration;
+        if (formattedDuration !== null) {
+            eb.addFields({ name: 'Duration', value: formattedDuration, inline: true });
         }
-        if (fields.length > 0)
+        if (fields.length > 0) {
             eb.addFields(...fields);
-        return { embed: eb.toJSON(), files };
+        }
+        return { embeds: [eb], files };
     }
 }
 
@@ -623,8 +670,9 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         this.stop();
         Player.cache.delete(this.guildId);
     }
-    public getEmbed(page: number): { embed: APIEmbed; files: AttachmentBuilder[]; } | null {
-        const totalPages = Math.max(Math.ceil(this.queue.length / 25) - 1, 0);
+
+    public generateQueueMessage(page: number): MessagePayloadOption | null {
+        const totalPages = Math.max(Math.ceil(this.queue.length / MAX_PAGE_SIZE) - 1, 0);
         if (page < 0 || totalPages > 0 && page > totalPages || !Number.isSafeInteger(page)) {
             throw new RangeError(`page ${page} is invalid`);
         }
@@ -632,32 +680,58 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
             return null;
         }
         if (this.queue.length === 0) {
-            return this.nowPlaying.toEmbed();
+            return this.nowPlaying.toMessage();
         }
-        const eb = new EmbedBuilder();
+        const container = new ContainerBuilder()
+            .setAccentColor(Colors.DarkButNotBlack);
+        // Now Playing
         if (page === 0) {
-            const { embed: { title, url, description } } = this.nowPlaying.toEmbed();
-            eb.setAuthor({ name: 'Now Playing:' });
-            if (title != null) {
-                eb.setTitle(title);
-            }
-            if (url != null) {
-                eb.setURL(url);
-            }
-            if (description != null) {
-                eb.setDescription(description);
-            }
+            container.addTextDisplayComponents(
+                new TextDisplayBuilder()
+                    .setContent(
+                        [
+                            '### Now Playing:',
+                            ...this.nowPlaying.compactLines
+                        ].join('\n')
+                    )
+            )
         }
-        for (let i = page * 25; i < this.queue.length && i < (page + 1) * 25; i++) {
-            const track = this.queue.get(i);
-            eb.addFields({
-                name: ' ',
-                value: `**${i + 1}: ${track.url ? `[${track.title}](${track.url})` : track.title}**\n${track.duration != null ? Duration.format(track.duration) : ''}`
-            });
+        // Up Next
+        const start = page * MAX_PAGE_SIZE;
+        container.addTextDisplayComponents(
+            new TextDisplayBuilder()
+                .setContent(
+                    [
+                        '### Up Next:',
+                        ...this.queue.values()
+                            .drop(start)
+                            .take(MAX_PAGE_SIZE)
+                            .flatMap((track, index) => {
+                                const [title, ...lines] = track.compactLines;
+                                return [
+                                    `${index + start + 1}. ${title}`,
+                                    '      ',
+                                    ...lines.map(line => `  ${line}`)
+                                ]
+                            })
+                    ].join('\n')
+                )
+        );
+        // Footer
+        const footerLines = [
+            `-# ${this.queue.length + 1} Items (${Duration.format((this.nowPlaying.duration ?? 0) + this.queue.duration)})`
+        ];
+        if (this.queue.length > MAX_PAGE_SIZE) {
+            footerLines.push(`-# Page ${page + 1}/${totalPages + 1}`);
         }
-        const duration = (this.nowPlaying.duration ?? 0) + this.queue.duration;
-        eb.setFooter({ text: `${this.queue.length + 1} items (${Duration.format(duration)})${this.queue.length > 25 ? `\nPage ${page + 1}/${totalPages + 1}` : ''}` });
-        return { embed: eb.toJSON(), files: [] };
+        container.addTextDisplayComponents(
+            new TextDisplayBuilder()
+                .setContent(footerLines.join('\n'))
+        );
+        return {
+            flags: MessageFlags.IsComponentsV2,
+            components: [container]
+        };
     }
 
     private async next(): Promise<void> {
@@ -670,8 +744,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
                 this.nowPlaying.reset();
             }
             await this.play(this.nowPlaying).catch(() => { this.skip() });
-        }
-        else {
+        } else {
             const track = this.queue.shift();
             if (track) {
                 await this.play(track).catch(() => { this.skip() });

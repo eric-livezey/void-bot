@@ -15,14 +15,13 @@ export async function remove(ctx: CommandContext<true>, index: number) {
             return;
         }
         const track = queue.remove(index - 1);
-        const { embed, files } = track.toEmbed();
-        await ctx.reply({ content: '**Removed**:', embeds: [embed], files });
+        await ctx.reply({ content: '**Removed**:', ...track.toMessage() });
     }
 }
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
-    PermissionsBitField.Flags.Speak,
+    PermissionsBitField.Flags.Speak
 ]).freeze();
 
 export default {
