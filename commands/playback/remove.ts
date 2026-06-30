@@ -1,7 +1,7 @@
 import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from 'discord.js';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
-import { canManagePlayback } from './play';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import type { Command } from '../index.js';
+import { canManagePlayback } from './play.js';
 
 export async function remove(ctx: CommandContext<true>, index: number) {
     if (await canManagePlayback(ctx)) {
@@ -36,7 +36,7 @@ export default {
                 .setRequired(true))
             .setContexts(InteractionContextType.Guild)
             .setDefaultMemberPermissions(permissions.bitfield),
-        async execute(ctx: InteractionContext<true>) {
+        async execute(ctx: SlashCommandContext<true>) {
             const { options } = ctx.interaction;
 
             const index = options.getInteger('index', true);
@@ -49,7 +49,7 @@ export default {
             aliases: ['remove', 'rm'],
             requiredPermissions: permissions,
             isDmRestricted: true,
-            async execute(ctx: MessageContext<true>) {
+            async execute(ctx: MessageCommandContext<true>) {
                 const [indexInput] = ctx.getArguments(1);
 
                 if (!indexInput) {

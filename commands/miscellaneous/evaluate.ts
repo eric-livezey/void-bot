@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
 import { evaluate } from 'mathjs';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import type { Command } from '../index.js';
 
 export async function execute(ctx: CommandContext, expression: string) {
     try {
@@ -25,7 +25,7 @@ export default {
                 .setName('expression')
                 .setDescription('A mathematical expression.')
                 .setRequired(true)),
-        async execute(ctx: InteractionContext) {
+        async execute(ctx: SlashCommandContext) {
             const options = ctx.interaction.options;
 
             const input = options.getString('expression', true);
@@ -36,7 +36,7 @@ export default {
     message: [
         {
             aliases: ['evaluate', 'eval'],
-            async execute(ctx: MessageContext) {
+            async execute(ctx: MessageCommandContext) {
                 const [input] = ctx.getArguments(1);
 
                 if (!input) {

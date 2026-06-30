@@ -1,16 +1,16 @@
-import { Attachment, channelMention, EmbedBuilder, InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
+import { Attachment, channelMention, EmbedBuilder, InteractionContextType, MessageFlags, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
 import { YT, YTNodes } from 'youtubei.js';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
-import { getInnertubeInstance } from '../../innertube';
-import { Track } from '../../player';
-import { bestThumbnail, channelURL, createVoiceConnection, extractPlaylistId, extractVideoId, isDiscordAttachmentURL, normalizeURL, playlistURL, resolveURL } from '../../utils';
-import { resume } from './resume';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import { getInnertubeInstance } from '../../innertube.js';
+import { Track } from '../../player.js';
+import { bestThumbnail, channelURL, createVoiceConnection, extractPlaylistId, extractVideoId, isDiscordAttachmentURL, normalizeURL, playlistURL, resolveURL } from '../../utils.js';
+import type { Command } from '../index.js';
+import { resume } from './resume.js';
 
 export async function canManagePlayback(ctx: CommandContext<true>) {
     const { player } = ctx;
     if (player.isPlaying()) {
-        if (ctx.isInteraction()) {
+        if (ctx.isSlashCommand()) {
             await ctx.deferReply();
         }
         const me = await ctx.guild.members.fetchMe();
@@ -29,7 +29,7 @@ export async function canManagePlayback(ctx: CommandContext<true>) {
             await ctx.reply('Nothing is playing.');
         }
     } else {
-        await ctx.reply('Nothing is playing.', { ephemeral: true });
+        await ctx.reply({ flags: MessageFlags.Ephemeral, content: 'Nothing is playing.' });
     }
     return false;
 }
@@ -39,7 +39,7 @@ export async function canViewPlayback(ctx: CommandContext<true>) {
     if (player.isPlaying()) {
         return true;
     } else {
-        await ctx.reply('Nothing is playing', { ephemeral: true });
+        await ctx.reply({ flags: MessageFlags.Ephemeral, content: 'Nothing is playing.' });
     }
     return false;
 }
@@ -47,14 +47,14 @@ export async function canViewPlayback(ctx: CommandContext<true>) {
 export async function connectToSpeak(ctx: CommandContext<true>) {
     const channel = ctx.member.voice.channel;
     if (!channel) {
-        await ctx.reply('You are not in a voice channel.', { ephemeral: true });
+        await ctx.reply({ flags: MessageFlags.Ephemeral, content: 'You are not in a voice channel.' });
         return false;
     }
     if (!ctx.isOwner() && !ctx.member.permissionsIn(channel).has(PermissionsBitField.Flags.Speak)) {
-        await ctx.reply(`You don't have permission to speak in ${channelMention(channel.id)}.`, { ephemeral: true });
+        await ctx.reply({ flags: MessageFlags.Ephemeral, content: `You don't have permission to speak in ${channelMention(channel.id)}.` });
         return false;
     }
-    if (ctx.isInteraction()) {
+    if (ctx.isSlashCommand()) {
         await ctx.deferReply();
     }
     const me = await ctx.guild.members.fetchMe();
@@ -111,14 +111,14 @@ export async function playTrack(ctx: CommandContext<true>, track: Track, thumbna
     if (position < 0) {
         await ctx.reply(`An error occurred while attempting to play the video.`);
     } else if (position === 0) {
-        await ctx.reply({ content: '**Now Playing**:', ...track.toMessage() }, { thumbnailKey });
+        await ctx.reply({ content: '**Now Playing**:', ...track.toMessage() }, thumbnailKey);
     } else {
         await ctx.reply(
             {
                 content: '**Added to the Queue**:',
                 ...track.toMessage({ name: 'Position', value: position.toLocaleString(), inline: true })
             },
-            { thumbnailKey }
+            thumbnailKey
         );
     }
 }
@@ -129,7 +129,7 @@ export async function play(ctx: CommandContext<true>, { input, attachment }: { i
             try {
                 const url = attachment.url;
                 const track = await Track.fromURL(url);
-                await playTrack(ctx, track, normalizeURL(url));
+                await playTrack(ctx, track);
             } catch {
                 await ctx.reply('The URL is invalid.');
             }
@@ -203,7 +203,7 @@ export default {
                 .setRequired(true))
             .setContexts(InteractionContextType.Guild)
             .setDefaultMemberPermissions(permissions.bitfield),
-        async execute(ctx: InteractionContext<true>) {
+        async execute(ctx: SlashCommandContext<true>) {
             const options = ctx.interaction.options;
 
             const input = options.getString('query', true);
@@ -216,7 +216,7 @@ export default {
             aliases: ['play'],
             requiredPermissions: permissions,
             isDmRestricted: true,
-            async execute(ctx: MessageContext<true>) {
+            async execute(ctx: MessageCommandContext<true>) {
                 const [input] = ctx.getArguments(1);
                 const attachment = ctx.message.attachments.first();
 

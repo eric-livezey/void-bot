@@ -1,6 +1,6 @@
 import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandNumberOption } from 'discord.js';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import type { Command } from '../index.js';
 
 export async function volume(ctx: CommandContext<true>, percentage: number) {
     const { player } = ctx;
@@ -25,7 +25,7 @@ export default {
                 .setRequired(true))
             .setContexts(InteractionContextType.Guild)
             .setDefaultMemberPermissions(permissions.bitfield),
-        async execute(ctx: InteractionContext<true>) {
+        async execute(ctx: SlashCommandContext<true>) {
             const percentage = ctx.interaction.options.getNumber('percentage', true);
 
             await volume(ctx, percentage);
@@ -36,7 +36,7 @@ export default {
             aliases: ['volume'],
             requiredPermissions: permissions,
             isDmRestricted: true,
-            async execute(ctx: MessageContext<true>) {
+            async execute(ctx: MessageCommandContext<true>) {
                 if (!ctx.member.permissions.has(permissions)) {
                     await ctx.reply('You must have permission to connect and speak to use this command.');
                     return;

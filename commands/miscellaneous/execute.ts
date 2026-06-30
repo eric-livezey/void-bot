@@ -1,7 +1,7 @@
-import { MessagePayloadOption } from 'discord.js';
-import { Context, Script, constants } from 'node:vm';
-import { Command } from '..';
-import { CommandContext, MessageContext } from '../../context';
+import { MessageFlags, type MessagePayloadOption } from 'discord.js';
+import { type Context, Script, constants } from 'node:vm';
+import { CommandContext, MessageCommandContext } from '../../context.js';
+import type { Command } from '../index.js';
 
 export async function execute(ctx: CommandContext, code: string, context: Context = {}) {
     try {
@@ -15,9 +15,9 @@ export async function execute(ctx: CommandContext, code: string, context: Contex
         await ctx.replyOrFollowUp(message);
     } catch (error) {
         if (Error.isError(error)) {
-            await ctx.reply(error.toString(), { ephemeral: true });
+            await ctx.reply({ flags: MessageFlags.Ephemeral, content: error.toString() });
         } else {
-            await ctx.reply(`An error was thrown which was not an instance of Error.\n${error}`, { ephemeral: true });
+            await ctx.reply({ flags: MessageFlags.Ephemeral, content: `An error was thrown which was not an instance of Error.\n${error}` });
         }
     }
 }
@@ -27,7 +27,7 @@ export default {
         {
             aliases: ['execute', 'exec'],
             isOwnerOnly: true,
-            async execute(ctx: MessageContext) {
+            async execute(ctx: MessageCommandContext) {
                 const [input] = ctx.getArguments(1);
 
                 if (!input) {

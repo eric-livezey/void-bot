@@ -1,14 +1,19 @@
 {
   "compilerOptions": {
+    "outDir": "./build",
+    "module": "nodenext",
     "target": "esnext",
-    "module": "commonjs",
+    "lib": ["esnext"],
+    "types": ["node"],
     "resolveJsonModule": true,
     "sourceMap": true,
-    "outDir": "./build",
-    "removeComments": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
+    "noUncheckedIndexedAccess": true,
     "strict": true,
-    "skipLibCheck": true
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "removeComments": true
   }
 }

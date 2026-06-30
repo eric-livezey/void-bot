@@ -1,5 +1,5 @@
-import { AutocompleteInteraction, Client as BaseClient, ClientOptions, Collection, PermissionResolvable, SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandsOnlyBuilder } from 'discord.js';
-import { InteractionContext, MessageContext } from '../context';
+import { AutocompleteInteraction, Client as BaseClient, type ClientOptions, Collection, type PermissionResolvable, SlashCommandBuilder, type SlashCommandOptionsOnlyBuilder, type SlashCommandSubcommandsOnlyBuilder } from 'discord.js';
+import { MessageCommandContext, SlashCommandContext } from '../context.js';
 
 export interface Command<InGuild extends boolean = boolean> {
     interaction?: InteractionCommand<InGuild>;
@@ -9,7 +9,7 @@ export interface Command<InGuild extends boolean = boolean> {
 export interface InteractionCommand<InGuild extends boolean = boolean> {
     data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder;
     isGuildCommand?: boolean;
-    execute: (ctx: InteractionContext<InGuild>) => Promise<void>;
+    execute: (ctx: SlashCommandContext<InGuild>) => Promise<void>;
     autocomplete?: (interaction: AutocompleteInteraction) => Promise<void>;
 }
 
@@ -18,7 +18,7 @@ export interface MessageCommand<InGuild extends boolean = boolean> {
     requiredPermissions?: PermissionResolvable;
     isDmRestricted?: boolean;
     isOwnerOnly?: boolean;
-    execute: (ctx: MessageContext<InGuild>) => Promise<void>;
+    execute: (ctx: MessageCommandContext<InGuild>) => Promise<void>;
 }
 
 /**

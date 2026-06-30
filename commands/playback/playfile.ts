@@ -1,7 +1,7 @@
 import { InteractionContextType, PermissionsBitField, SlashCommandAttachmentOption, SlashCommandBuilder } from 'discord.js';
-import { Command } from '..';
-import { InteractionContext } from '../../context';
-import { play } from './play';
+import { SlashCommandContext } from '../../context.js';
+import type { Command } from '../index.js';
+import { play } from './play.js';
 
 const permissions = new PermissionsBitField([
     PermissionsBitField.Flags.Connect,
@@ -19,7 +19,7 @@ export default {
                 .setRequired(true))
             .setContexts(InteractionContextType.Guild)
             .setDefaultMemberPermissions(permissions.bitfield),
-        async execute(ctx: InteractionContext<true>) {
+        async execute(ctx: SlashCommandContext<true>) {
             const attachment = ctx.interaction.options.getAttachment('file', true);
 
             await play(ctx, { attachment });

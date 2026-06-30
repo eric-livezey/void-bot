@@ -1,10 +1,10 @@
-import { BitFieldResolvable, ChatInputCommandInteraction, Client, Guild, GuildMember, GuildTextBasedChannel, If, InteractionCallbackResponse, InteractionReplyOptions, Message, MessageFlagsBitField, MessageFlagsString, MessagePayload, MessagePayloadOption, OmitPartialGroupDMChannel, PartialGroupDMChannel, Snowflake, TextBasedChannel, User } from 'discord.js';
-import { Player } from './player';
-import { TrackerManager } from './tracker';
-import { cacheThumbnailURL, isOwner, normalizeURL } from './utils';
+import { Collection, GuildMember, InteractionCallbackResponse, Message, MessagePayload, type BooleanCache, type ChatInputCommandInteraction, type Client, type Guild, type GuildTextBasedChannel, type If, type InteractionDeferReplyOptions, type InteractionEditReplyOptions, type InteractionReplyOptions, type InteractionResponse, type MessageEditOptions, type MessagePayloadOption, type MessageReplyOptions, type MessageResolvable, type OmitPartialGroupDMChannel, type Snowflake, type TextBasedChannel, type User } from 'discord.js';
+import { Player } from './player.js';
+import { TrackerManager } from './tracker.js';
+import { cacheThumbnailURL, isOwner, normalizeURL } from './utils.js';
 
-type MessageOptions = MessagePayloadOption;
-type MessageOptionsResolvable = string | MessageOptions;
+export type MessageOptions = MessagePayloadOption;
+export type MessageOptionsResolvable = string | MessageOptions | MessagePayload;
 
 function split(str: string, regex: RegExp, limit?: number): string[] {
     const result = [];
@@ -19,23 +19,6 @@ function split(str: string, regex: RegExp, limit?: number): string[] {
     return result;
 }
 
-function resolveMessageOptions(options: MessageOptionsResolvable): MessageOptions {
-    if (typeof options === 'string') {
-        return { content: options };
-    }
-    return options;
-}
-
-function makeEphemeral(options: MessageOptionsResolvable): MessageOptions {
-    options = resolveMessageOptions(options);
-    // NOTE: this cast is necessary due to some small isues with discord.js's typings
-    return {
-        ...options,
-        flags: new MessageFlagsBitField(options.flags as BitFieldResolvable<MessageFlagsString, number> | undefined)
-            .add(MessageFlagsBitField.Flags.Ephemeral).bitfield
-    };
-}
-
 function cacheMessageThumbnailURL(key: string, message: Message) {
     const thumbnail = message.embeds[0]?.thumbnail;
     if (thumbnail) {
@@ -43,67 +26,50 @@ function cacheMessageThumbnailURL(key: string, message: Message) {
     }
 }
 
-export interface ContextReplyOptions {
-    ephemeral?: boolean;
-    thumbnailKey?: string;
-}
-
-export type ContextEditReplyOptions = Pick<ContextReplyOptions, 'thumbnailKey'>;
-
-export interface ContextOptions {
-    client: Client<true>;
-    commandName: string;
-    user: User;
-    channelId: Snowflake;
-    guildId?: Snowflake;
-}
-
 /**
- * The context an invoked command.
+ * Represents the context in which a command was sent.
  */
 export abstract class CommandContext<InGuild extends boolean = boolean> {
     /**
-     * The client associated with the command.
+     * The discord client associated with the command.
      */
-    public readonly client: Client<true>;
+    public abstract readonly client: Client<true>;
     /**
      * The name of the command.
      */
-    public readonly commandName: string;
+    public abstract readonly commandName: string;
     /**
-     * The user which invoked the command.
+     * The ID of the user who invoked the command.
      */
-    public readonly user: User;
+    public abstract readonly userId: Snowflake;
     /**
-     * The ID of the channel the command was invoked in.
+     * The ID of the text channel in which the command was invoked.
      */
-    public readonly channelId: Snowflake;
+    public abstract readonly channelId: Snowflake;
     /**
-     * The channel the command was invoked in.
+     * If applicable, the ID of the guild in which the command was invoked.
      */
-    public get channel(): Exclude<If<InGuild, GuildTextBasedChannel, TextBasedChannel>, PartialGroupDMChannel> {
-        return this.client.channels.resolve(this.channelId) as Exclude<If<InGuild, GuildTextBasedChannel, TextBasedChannel>, PartialGroupDMChannel>;
-    }
+    public abstract readonly guildId: If<InGuild, Snowflake>;
     /**
-     * If applicable, the ID of the guild in which the command was invoked in.
+     * The user who invoked the command.
      */
-    public readonly guildId: If<InGuild, Snowflake>;
+    public abstract readonly user: User;
     /**
-     * If applicable, the guild in which the command was invoked in.
+     * The text channel in which the command was invoked.
      */
-    public get guild(): If<InGuild, Guild> {
-        return (this.inGuild() ? this.client.guilds.resolve(this.guildId) : null) as If<InGuild, Guild>;
-    }
+    public abstract readonly channel: If<InGuild, GuildTextBasedChannel, TextBasedChannel>;
     /**
-     * If applicable, the guild member which invoked the command.
+     * If applicable, the guild in which the command was invoked.
      */
-    public get member(): If<InGuild, GuildMember> {
-        return (this.inGuild() ? this.guild.members.resolve(this.user.id) : null) as If<InGuild, GuildMember>;
-    }
-    public abstract get replied(): boolean;
-    public get repliable() {
-        return !this.replied;
-    };
+    public abstract readonly guild: If<InGuild, Guild>;
+    /**
+     * If applicable, the guild member who invoked the command.
+     */
+    public abstract readonly member: If<InGuild, GuildMember>;
+    /**
+     * `true` if the command has been replied to.
+     */
+    public abstract readonly replied: boolean;
     public get player(): If<InGuild, Player> {
         return (this.inGuild() ? Player.of(this.guildId) : null) as If<InGuild, Player>;
     }
@@ -111,189 +77,283 @@ export abstract class CommandContext<InGuild extends boolean = boolean> {
         return TrackerManager.of(this.client);
     }
 
-    /**
-     * Creates a new context with the specific options.
-     * 
-     * @param options Options.
-     */
-    public constructor(options: ContextOptions) {
-        this.client = options.client;
-        this.commandName = options.commandName;
-        this.user = options.user;
-        this.channelId = options.channelId;
-        this.guildId = (options.guildId ?? null) as If<InGuild, Snowflake>;
-    }
-
-    /**
-     * Returns `true` if the user who invoked the command is the bot owner.
-     */
     public isOwner(): boolean {
-        return isOwner(this.user.id);
+        return isOwner(this.userId);
     }
     /**
-     * Returns `true` if the command was invoked in a guild, else `false`.
+     * Returns `true` if the command was executed from a slash command.
      */
-    public inGuild(): this is CommandContext<true> {
-        return this.guildId !== null;
+    public isSlashCommand(): this is SlashCommandContext<InGuild> {
+        return this instanceof SlashCommandContext;
     }
     /**
-     * Returns `true` if the command is a message command, else `false`.
+     * Returns `true` if the command was executed from a message.
      */
-    public isMessage(): this is MessageContext<InGuild> {
-        return this instanceof MessageContext;
+    public isMessageCommand(): this is MessageCommandContext<InGuild> {
+        return this instanceof MessageCommandContext;
     }
     /**
-     * Returns `true` if the command is an interaction command, else `false`.
+     * Returns `true` if the command was executed in a guild.
      */
-    public isInteraction(): this is InteractionContext<InGuild> {
-        return this instanceof InteractionContext;
-    }
+    public abstract inGuild(): this is CommandContext<true>;
     /**
-     * Replies to the command.
-     */
-    public abstract reply(options: MessageOptionsResolvable, additionalOptions?: ContextReplyOptions): Promise<InteractionCallbackResponse<InGuild> | Message<InGuild>>;
-    /**
-     * Creates a follow up reply to the command.
-     */
-    public abstract followUp(options: MessageOptionsResolvable, ephemeral?: boolean): Promise<Message<InGuild>>;
-    /**
-     * Edits the existing reply to the command.
-     */
-    public abstract editReply(options: MessageOptionsResolvable, additionalOptions?: ContextEditReplyOptions): Promise<Message<InGuild>>;
-    /**
-     * Replies to the command, or creates a follow up message if the command has already been replied to.
-     */
-    public replyOrFollowUp(options: MessageOptionsResolvable, ephemeral?: boolean) {
-        return this.repliable ? this.reply(options, { ephemeral }) : this.followUp(options, ephemeral);
-    }
-    /**
-     * Replies to the command, or edits the reply if the command has already been replied to.
-     */
-    public replyOrEditReply(options: MessageOptionsResolvable, ephemeral?: boolean) {
-        return this.repliable ? this.reply(options, { ephemeral }) : this.editReply(options);
-    }
-    protected resolveMessagePayload(options: MessageOptionsResolvable) {
-        return MessagePayload.create(this.channel, options);
-    }
-}
-
-/**
- * The context of a command which was invoked via a message.
- */
-export class MessageContext<InGuild extends boolean = boolean> extends CommandContext<InGuild> {
-    private readonly content: string;
-    private response: Message<InGuild> | null = null;
-    /**
-     * The message which invoked the command.
-     */
-    public readonly message: OmitPartialGroupDMChannel<Message<InGuild>>;
-    public get replied() {
-        return this.response != null;
-    }
-
-    public constructor(message: OmitPartialGroupDMChannel<Message<InGuild>>, prefix: string) {
-        const [name, content] = split(message.content, /\s+/g, 2);
-        super({
-            client: message.client,
-            commandName: name?.substring(prefix.length) ?? '',
-            user: message.author,
-            channelId: message.channelId,
-            guildId: message.guildId ?? undefined
-        });
-        this.message = message;
-        this.content = content ?? '';
-    }
-
-    /**
-     * Returns the parsed arguments for the command.
+     * Reply to the command.
      * 
-     * @param limit The maximum number of arguments.
+     * @param options Message options
      */
-    public getArguments(limit?: number): string[] {
-        return split(this.content, /\s+/g, limit);
-    }
-    public async reply(options: MessageOptionsResolvable, { thumbnailKey }: ContextReplyOptions = {}): Promise<Message<InGuild>> {
-        const payload = this.resolveMessagePayload(options);
-        const message = this.response = await this.channel.send(payload) as Message<InGuild>;
-        if (thumbnailKey != null) {
-            cacheMessageThumbnailURL(thumbnailKey, message);
+    public abstract reply(options: MessageOptionsResolvable, thumbnailKey?: string): Promise<InteractionCallbackResponse<InGuild> | InteractionResponse<BooleanCache<GuildCacheType<InGuild>>> | Message<InGuild>>;
+    /**
+     * Edit the latest reply to the command.
+     * 
+     * @param options Message options
+     */
+    public abstract editReply(options: MessageOptionsResolvable, thumbnailKey?: string): Promise<Message<InGuild>>;
+    /**
+     * Send a follow-up to the command.
+     * 
+     * @param options Message options
+     */
+    public abstract followUp(options: MessageOptionsResolvable, thumbnailKey?: string): Promise<Message<InGuild>>;
+    /**
+     * Deletes a reply to the command.
+     * 
+     * @param options The message to delete
+     */
+    public abstract deleteReply(options?: MessageResolvable): Promise<void>;
+    /**
+     * Reply or follow-up to the command.
+     * 
+     * @param options Message options
+     */
+    public replyOrFollowUp(options: MessageOptionsResolvable, thumbnailKey?: string): Promise<InteractionCallbackResponse<InGuild> | InteractionResponse<BooleanCache<GuildCacheType<InGuild>>> | Message<InGuild>> {
+        if (!this.replied) {
+            return this.reply(options, thumbnailKey);
         }
-        return message;
-    }
-    public async followUp(options: MessageOptionsResolvable): Promise<Message<InGuild>> {
-        return this.response = await this.reply(options);
-    }
-    public async editReply(options: MessageOptionsResolvable, { thumbnailKey }: ContextEditReplyOptions = {}): Promise<Message<InGuild>> {
-        const payload = this.resolveMessagePayload(options);
-        const message = this.response = await this.response!.edit(payload);
-        if (thumbnailKey != null) {
-            cacheMessageThumbnailURL(thumbnailKey, message);
-        }
-        return message;
+        return this.followUp(options, thumbnailKey);
     }
 }
 
-/**
- * The context of a command invoked via a {@link ChatInputCommandInteraction}.
- */
-export class InteractionContext<InGuild extends boolean = boolean> extends CommandContext<InGuild> {
-    public readonly interaction: ChatInputCommandInteraction;
-    public get deferred() {
-        return this.interaction.deferred;
+type GuildCacheType<InGuild extends boolean> = If<InGuild, 'cached' | 'raw', undefined>;
+
+export class SlashCommandContext<InGuild extends boolean = boolean> extends CommandContext<InGuild> {
+    public get client(): Client<true> {
+        return this.interaction.client;
+    }
+    public get commandName(): string {
+        return this.interaction.commandName;
+    }
+    public get userId(): Snowflake {
+        return this.user.id;
+    }
+    public get channelId(): Snowflake {
+        return this.interaction.channelId;
+    }
+    public get guildId(): If<InGuild, Snowflake> {
+        return this.interaction.guildId as If<InGuild, Snowflake>;
+    }
+    public get user(): User {
+        return this.interaction.user;
+    }
+    public get channel(): If<InGuild, GuildTextBasedChannel, TextBasedChannel> {
+        return this.interaction.channel as If<InGuild, GuildTextBasedChannel, TextBasedChannel>;
+    }
+    public get guild(): If<InGuild, Guild> {
+        return this.interaction.guild as If<InGuild, Guild>;
+    }
+    public get member(): If<InGuild, GuildMember> {
+        const member = this.interaction.member;
+        if (member === null) {
+            return null as If<InGuild, GuildMember>;
+        }
+        if (member instanceof GuildMember) {
+            return (this.guild?.members.resolve(member) ?? null) as If<InGuild, GuildMember>;
+        }
+        return this.guild?.members.resolve(member.user.id) as If<InGuild, GuildMember>;
     }
     public get replied() {
         return this.interaction.replied;
     }
+    /**
+     * `true` if the interaction was deferred.
+     */
+    public get deferred() {
+        return this.interaction.deferred;
+    }
+    public readonly interaction: ChatInputCommandInteraction<GuildCacheType<InGuild>>;
 
-    constructor(interaction: ChatInputCommandInteraction) {
-        super({
-            client: interaction.client,
-            user: interaction.user,
-            channelId: interaction.channelId,
-            guildId: interaction.guildId ?? undefined,
-            commandName: interaction.commandName
-        });
+    public constructor(interaction: ChatInputCommandInteraction<GuildCacheType<InGuild>>) {
+        super();
         this.interaction = interaction;
     }
 
+    public inGuild(): this is SlashCommandContext<true> {
+        return this.interaction.inGuild();
+    }
     /**
      * Defers the interaction reply.
+     * 
+     * @param options Defer reply options
      */
-    public async deferReply(): Promise<void> {
-        if (!this.deferred) {
-            await this.interaction.deferReply();
-        }
+    public deferReply(options?: InteractionDeferReplyOptions): Promise<InteractionResponse<BooleanCache<GuildCacheType<InGuild>>>> {
+        return this.interaction.deferReply(options);
     }
-    public async reply(options: MessageOptionsResolvable, { ephemeral, thumbnailKey }: ContextReplyOptions = {}): Promise<InteractionCallbackResponse<InGuild> | Message<InGuild>> {
-        if (this.deferred) {
-            return this.editReply(options, { thumbnailKey });
+    public reply(
+        options: string | InteractionReplyOptions & InteractionEditReplyOptions | MessagePayload,
+        thumbnailKey: string
+    ): Promise<InteractionCallbackResponse<InGuild> | Message<InGuild>>;
+    public reply(
+        options: InteractionReplyOptions & InteractionEditReplyOptions & { withResponse: true },
+        thumbnailKey?: string
+    ): Promise<InteractionCallbackResponse<InGuild> | Message<InGuild>>;
+    public reply(
+        options: string | InteractionReplyOptions & InteractionEditReplyOptions | MessagePayload,
+        thumbnailKey?: string
+    ): Promise<InteractionResponse<BooleanCache<GuildCacheType<InGuild>>> | Message<InGuild>>;
+    public async reply(
+        options: string | InteractionReplyOptions & InteractionEditReplyOptions | MessagePayload,
+        thumbnailKey?: string
+    ): Promise<InteractionCallbackResponse<InGuild> | InteractionResponse<BooleanCache<GuildCacheType<InGuild>>> | Message<InGuild>> {
+        if (!this.deferred) {
+            if (thumbnailKey != null) {
+                const response = await this.interaction.reply(
+                    (typeof options === 'string'
+                        ? { content: options, withResponse: true }
+                        : {
+                            ...(options instanceof MessagePayload
+                                ? options.options as MessageOptions & InteractionReplyOptions & InteractionEditReplyOptions
+                                : options),
+                            withResponse: true
+                        }
+                    )
+                ) as InteractionCallbackResponse<InGuild>;
+                let message;
+                if ((message = response.resource?.message)) {
+                    cacheMessageThumbnailURL(thumbnailKey, message);
+                    return message;
+                }
+                return response;
+            }
+            return await this.interaction.reply(options);
         }
-        if (ephemeral) {
-            options = makeEphemeral(options);
-        }
-        options = resolveMessageOptions(options) as InteractionReplyOptions;
-        options.withResponse = true;
-        const payload = this.resolveMessagePayload(options);
-        const response = (await this.interaction.reply(payload) as unknown as InteractionCallbackResponse<InGuild>);
-        let message;
-        if (thumbnailKey != null && (message = response.resource?.message)) {
+        // edit reply when deferred for ease of use
+        return this.editReply(options, thumbnailKey);
+    }
+    public async editReply(options: string | InteractionEditReplyOptions | MessagePayload, thumbnailKey?: string): Promise<Message<InGuild>> {
+        const message = await this.interaction.editReply(options);
+        if (thumbnailKey != null) {
             cacheMessageThumbnailURL(thumbnailKey, message);
         }
-        return response;
+        return message as Message<InGuild>;
     }
-    public async followUp(options: MessageOptionsResolvable, ephemeral?: boolean): Promise<Message<InGuild>> {
-        if (ephemeral) {
-            options = makeEphemeral(options);
+    public async followUp(options: string | InteractionReplyOptions | MessagePayload, thumbnailKey?: string): Promise<Message<InGuild>> {
+        const message = await this.interaction.followUp(options);
+        if (thumbnailKey != null) {
+            cacheMessageThumbnailURL(thumbnailKey, message);
         }
-        const payload = this.resolveMessagePayload(options);
-        return await this.interaction.followUp(payload) as Message<InGuild>;
+        return message as Message<InGuild>;
     }
-    public async editReply(options: MessageOptionsResolvable, { thumbnailKey }: ContextEditReplyOptions = {}): Promise<Message<InGuild>> {
-        const payload = this.resolveMessagePayload(options);
-        const message = await this.interaction.editReply(payload) as Message<InGuild>;
+    public async deleteReply(options?: MessageResolvable): Promise<void> {
+        await this.interaction.deleteReply(options);
+    }
+}
+
+export class MessageCommandContext<InGuild extends boolean = boolean> extends CommandContext<InGuild> {
+    private readonly replies: Collection<Snowflake, Message<InGuild>> = new Collection();
+    public get client(): Client<true> {
+        return this.message.client;
+    }
+    public readonly commandName: string;
+    public get userId(): Snowflake {
+        return this.user.id;
+    }
+    public get channelId(): Snowflake {
+        return this.message.channelId;
+    }
+    public get guildId(): If<InGuild, Snowflake> {
+        return this.message.guildId;
+    }
+    public get user(): User {
+        return this.message.author;
+    }
+    public get channel(): If<InGuild, GuildTextBasedChannel, TextBasedChannel> {
+        return this.message.channel;
+    }
+    public get guild(): If<InGuild, Guild> {
+        return this.message.guild;
+    }
+    public get member(): If<InGuild, GuildMember> {
+        return this.message.member as If<InGuild, GuildMember>;
+    }
+    public get replied(): boolean {
+        return this.replies.size > 0;
+    }
+    public readonly message: Message<InGuild>;
+    private readonly content: string;
+
+    public constructor(message: Message<InGuild>, prefix?: string) {
+        super();
+        const [name, content] = split(message.content, /\s+/g, 2);
+        this.message = message;
+        this.commandName = name?.substring(prefix?.length ?? 0) ?? '';
+        this.content = content ?? '';
+    }
+
+    public inGuild(): this is MessageCommandContext<true> {
+        return this.message.inGuild();
+    }
+    public getArguments(count?: number): string[] {
+        return split(this.content, /\s+/g, count);
+    }
+    public async reply(options: string | MessageReplyOptions | MessagePayload, thumbnailKey?: string): Promise<OmitPartialGroupDMChannel<Message<InGuild>>> {
+        if (this.replied) {
+            throw new Error('The command has already been replied to.');
+        }
+        if (typeof options === 'string') {
+            options = { content: options };
+        }
+        const replyOptions = options instanceof MessagePayload ? options.options as MessageOptions & MessageReplyOptions : options;
+        replyOptions.allowedMentions ??= { repliedUser: false };
+        replyOptions.failIfNotExists ??= false;
+        const message = await this.message.reply(options);
+        this.replies.set(message.id, message);
         if (thumbnailKey != null) {
             cacheMessageThumbnailURL(thumbnailKey, message);
         }
         return message;
+    }
+    public async editReply(options: string | MessageEditOptions | MessagePayload, thumbnailKey?: string): Promise<OmitPartialGroupDMChannel<Message<InGuild>>> {
+        const target = this.replies.last();
+        if (!target) {
+            throw new Error('The command has not been replied to.');
+        }
+        const message = await target.edit(options);
+        if (thumbnailKey != null) {
+            cacheMessageThumbnailURL(thumbnailKey, message);
+        }
+        return message;
+    }
+    public async followUp(options: string | MessageReplyOptions | MessagePayload, thumbnailKey?: string): Promise<OmitPartialGroupDMChannel<Message<InGuild>>> {
+        const target = this.replies.last();
+        if (!target) {
+            throw new Error('The command has not been replied to.');
+        }
+        if (typeof options === 'string') {
+            options = { content: options };
+        }
+        const replyOptions = options instanceof MessagePayload ? options.options as MessageOptions & MessageReplyOptions : options;
+        replyOptions.allowedMentions ??= { repliedUser: false };
+        replyOptions.failIfNotExists ??= false;
+        const message = await target.reply(options);
+        if (thumbnailKey != null) {
+            cacheMessageThumbnailURL(thumbnailKey, message);
+        }
+        return message;
+    }
+    public async deleteReply(options: MessageResolvable | '@original'): Promise<void> {
+        const target = options === '@original' ? this.replies.first() : this.replies.get(options instanceof Message ? options.id : options);
+        if (!target) {
+            throw new Error('The target message does not exist.');
+        }
+        await target.delete();
     }
 }

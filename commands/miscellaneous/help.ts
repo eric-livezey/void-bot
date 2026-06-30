@@ -1,6 +1,6 @@
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
-import { Command } from '..';
-import { CommandContext } from '../../context';
+import { CommandContext } from '../../context.js';
+import type { Command } from '../index.js';
 
 const embed = new EmbedBuilder().addFields(
     { name: 'play *[query]', value: 'Plays something from YouTube using the [query] as a link or search query. If any atachments are added, the bot will attempt to play them as audio, otherwise if no query is provided, attempts resume.' },

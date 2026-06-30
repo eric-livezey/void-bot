@@ -1,9 +1,9 @@
 import { joinVoiceChannel, VoiceConnection } from '@discordjs/voice';
-import { Snowflake, VoiceBasedChannel } from 'discord.js';
-import { getInnertubeInstance } from './innertube';
-import path from 'node:path';
+import type { Snowflake, VoiceBasedChannel } from 'discord.js';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import config from './config.json';
+import path from 'node:path';
+import config from './config.json' with { type: 'json' };
+import { getInnertubeInstance } from './innertube.js';
 
 const { ownerId: OWNER_ID } = config as ConfigOptions;
 
@@ -237,7 +237,7 @@ const CHANNEL_URL_REGEXP = RegExp(`^https://discord\\.com/channels/${SNOWFLAKE_P
 const ROLE_MENTION_REGEXP = RegExp(`^<@&(${SNOWFLAKE_PATTERN.source})>$`);
 function resolveDiscordId(input: string, ...expressions: RegExp[]): string | null {
     let match: RegExpMatchArray | null;
-    return expressions.some(exp => match = input.match(exp)) ? match![1] : resolveSnowflake(input);
+    return expressions.some(exp => match = input.match(exp)) ? match![1]! : resolveSnowflake(input);
 }
 /**
  * Resolves a snowflake from a string.
@@ -274,6 +274,44 @@ export function resolveChannelId(input: string): Snowflake | null {
  */
 export function resolveRoleId(input: string): Snowflake | null {
     return resolveDiscordId(input, ROLE_MENTION_REGEXP);
+}
+const ZERO_WIDTH_SPACE = '\u200B';
+/**
+ * A list marker for discord markdown.
+ */
+export type ListItemMarker = '-' | '*' | `${number}.`;
+function formatListItemLine(text: string): string {
+    if (/^([\s*#-]|\d+\.)/.test(text)) {
+        return ZERO_WIDTH_SPACE + text;
+    }
+    return text.replace(/^\s*([\w\d]*:[\w\d]+|:)/g, match => match.replace(':', '\\:'));
+}
+/**
+ * Safely formats a list item for discord markdown.
+ * 
+ * @param marker The list marker
+ * @param text The text to format
+ * @param depth If applicable, the depth of the list item
+ */
+export function formatListItem(marker: ListItemMarker, text: string, depth?: number): string;
+/**
+ * Safely formats a list item for discord markdown.
+ * 
+ * @param marker The list marker
+ * @param lines Lines of text to format
+ * @param depth If applicable, the depth of the list item
+ */
+export function formatListItem(marker: ListItemMarker, lines: string[], depth?: number): string;
+export function formatListItem(marker: ListItemMarker, arg: string | string[], depth = 0): string {
+    const prefix = ' '.repeat(depth * 2);
+    const [first, ...rest] = typeof arg === 'string' ? arg.split('\n') : arg;
+    return [
+        `${prefix}${marker} ${first ?? ZERO_WIDTH_SPACE}`,
+        // discord markdown cannot parse the following:
+        // - a line which begins with \s*[\w\d]+:[\w\d]
+        // - a line which beings with a list marker so -|*|[\d]+\.
+        ...rest.map(line => `${prefix}  ${formatListItemLine(line)}`)
+    ].join('\n');
 }
 /**
  * Returns `true` if a URL is corresponds to a discord attachment.
@@ -355,7 +393,7 @@ export function extractVideoId(url: URL): string | null {
                 return b ?? url.searchParams.get('v');
             }
             if (a === 'shorts') {
-                return b;
+                return b ?? null;
             }
             if (url.hostname === shortUrlHostname && b == null) {
                 return a ?? null;
@@ -428,7 +466,7 @@ export function resolveYouTubeChannelId(input: string): string | null {
  * @returns The channel ID or `null`.
  */
 export async function getYouTubeChannelId(input: string): Promise<string | null> {
-    let channelId = input;
+    let channelId: string | null = input;
     const url = resolveURL(input);
     if (url && isYouTubeURL(url)) {
         const [, a, b] = url.pathname.split('/');
@@ -467,7 +505,7 @@ const YT_DURATION_PART_VALUES = [
 export function parseYTDuration(text: string) {
     return text.split(':')
         .reverse()
-        .reduce((seconds, part, index) => seconds + Number(part) * YT_DURATION_PART_VALUES[index], 0) * 1000;
+        .reduce((seconds, part, index) => seconds + Number(part) * (YT_DURATION_PART_VALUES[index] ?? 1), 0) * 1000;
 }
 export interface Thumbnail {
     /**

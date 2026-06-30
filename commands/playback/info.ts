@@ -1,8 +1,8 @@
-import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from 'discord.js';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
-import { nowPlaying } from './nowplaying';
-import { canViewPlayback } from './play';
+import { InteractionContextType, MessageFlags, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from 'discord.js';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import type { Command } from '../index.js';
+import { nowPlaying } from './nowplaying.js';
+import { canViewPlayback } from './play.js';
 
 export async function info(ctx: CommandContext<true>, index: number) {
     if (index === 0) {
@@ -14,10 +14,10 @@ export async function info(ctx: CommandContext<true>, index: number) {
             if (track) {
                 await ctx.reply(track.toMessage());
             } else {
-                await ctx.reply('`index` must be less than or equal to the length of the queue.', { ephemeral: true });
+                await ctx.reply({ flags: MessageFlags.Ephemeral, content: '`index` must be less than or equal to the length of the queue.' });
             }
         } else {
-            await ctx.reply('`index` must be less than or equal to the length of the queue.', { ephemeral: true });
+            await ctx.reply({ flags: MessageFlags.Ephemeral, content: '`index` must be less than or equal to the length of the queue.' });
         }
     }
 }
@@ -39,7 +39,7 @@ export default {
                 .setRequired(true))
             .setContexts(InteractionContextType.Guild)
             .setDefaultMemberPermissions(permissions.bitfield),
-        async execute(ctx: InteractionContext<true>) {
+        async execute(ctx: SlashCommandContext<true>) {
             const index = ctx.interaction.options.getInteger('index', true);
 
             await info(ctx, index);
@@ -50,7 +50,7 @@ export default {
             aliases: ['info', 'i'],
             requiredPermissions: permissions,
             isDmRestricted: true,
-            async execute(ctx: MessageContext<true>) {
+            async execute(ctx: MessageCommandContext<true>) {
                 const [input] = ctx.getArguments(1);
 
                 if (!input) {

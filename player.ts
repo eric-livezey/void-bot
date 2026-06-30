@@ -1,5 +1,5 @@
-import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, CreateAudioResourceOptions, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
-import { APIEmbedField, AttachmentBuilder, Colors, ContainerBuilder, EmbedBuilder, MessageFlags, MessagePayloadOption, RestOrArray, Snowflake, TextDisplayBuilder } from 'discord.js';
+import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, type CreateAudioResourceOptions, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
+import { ActionRowBuilder, type APIEmbedField, AttachmentBuilder, ButtonBuilder, ButtonStyle, Colors, ContainerBuilder, EmbedBuilder, type MessageActionRowComponentBuilder, MessageFlags, type MessagePayloadOption, type RestOrArray, SeparatorBuilder, type Snowflake, TextDisplayBuilder, time, TimestampStyles } from 'discord.js';
 import { parseWebStream } from 'music-metadata';
 import { spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -9,8 +9,8 @@ import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
 import sharp from 'sharp';
 import { YT, YTNodes } from 'youtubei.js';
-import { getInnertubeInstance } from './innertube';
-import { channelURL, Duration, generateVideoThumbnailURL, getCachedThumbnailURL, normalizeURL, parseYTDuration, videoURL } from './utils';
+import { getInnertubeInstance } from './innertube.js';
+import { channelURL, Duration, formatListItem, generateVideoThumbnailURL, getCachedThumbnailURL, normalizeURL, parseYTDuration, videoURL } from './utils.js';
 
 const AUDIO_CACHE_DIR = path.join('cache', 'audio');
 const SHOULD_DOWNLOAD = false;
@@ -133,8 +133,8 @@ export class Track<M = null> {
         if (metadata?.format.duration) {
             details.duration = metadata?.format.duration * 1000;
         }
-        if (common?.picture && common.picture.length > 0) {
-            const picture = common.picture[0];
+        let picture;
+        if (common?.picture && (picture = common.picture[0]) != null) {
             details.thumbnail = getCachedThumbnailURL(normalizeURL(url)) ?? new AttachmentBuilder(sharp(Buffer.from(picture.data)).resize(120), { name: 'thumbnail.png' });
         }
         details.url ??= url.toString();
@@ -254,8 +254,8 @@ export class Track<M = null> {
             thumbnail: generateVideoThumbnailURL(videoId),
             duration: item.duration!.seconds * 1000,
             author: {
-                name: item.artists![0].name,
-                url: item.artists![0].endpoint?.toURL()
+                name: item.artists![0]!.name,
+                url: item.artists![0]!.endpoint?.toURL()
             }
         } satisfies TrackOptions;
         return new Track(prepare, item.title?.toString() ?? 'Unknown', details);
@@ -312,7 +312,7 @@ export class Track<M = null> {
         return formattedDuration;
     }
     get compactLines() {
-        const lines = [`**[${this.title}](${this.url})**`];
+        const lines = [this.url != null ? `**[${this.title}](${this.url})**` : this.title];
         const formattedDuration = this.formattedDuration;
         if (formattedDuration !== null) {
             lines.push(formattedDuration);
@@ -326,7 +326,7 @@ export class Track<M = null> {
      */
     public toMessage(...fields: RestOrArray<APIEmbedField>): MessagePayloadOption {
         const eb = new EmbedBuilder();
-        const files = [] as AttachmentBuilder[];
+        const files: AttachmentBuilder[] = [];
         eb.setTitle(this.title);
         if (this.url != null) {
             eb.setURL(this.url);
@@ -388,7 +388,7 @@ export class Queue implements Iterable<Track<unknown>> {
     public shift(): Track<unknown> | undefined {
         const value = this.list.shift();
         if (this.list.length > 0) {
-            this.list[0].prepare();
+            this.list[0]!.prepare();
         }
         return value;
     }
@@ -396,7 +396,7 @@ export class Queue implements Iterable<Track<unknown>> {
         if (index < 0 || index >= this.list.length) {
             throw new RangeError(`index ${index} is out of bounds`);
         }
-        return this.list[index];
+        return this.list[index]!;
     }
     public set(index: number, value: Track<unknown>): void {
         if (index < 0 || index >= this.list.length) {
@@ -411,9 +411,9 @@ export class Queue implements Iterable<Track<unknown>> {
         if (index < 0 || index >= this.list.length) {
             throw new RangeError(`index ${index} is out of bounds`);
         }
-        const value = this.list.splice(index, 1)[0];
+        const value = this.list.splice(index, 1)[0]!;
         if (index === 0 && this.list.length > 0) {
-            this.list[0].prepare();
+            this.list[0]!.prepare();
         }
         return value;
     }
@@ -425,16 +425,16 @@ export class Queue implements Iterable<Track<unknown>> {
             throw new RangeError(`index ${destination} is out of bounds`);
         }
         const value = this.list.splice(source, 1)[0];
-        this.list.splice(destination, 0, value);
+        this.list.splice(destination, 0, value!);
         if (source === 0 || destination === 0) {
-            this.list[0].prepare();
+            this.list[0]!.prepare();
         }
     }
     public splice(start: number, deleteCount?: number): Track<unknown>[] {
         // explicitly passing undefined for deleteCount in Array.splice is converted to 0
         const part = this.list.splice(start, deleteCount ?? Infinity);
         if ((deleteCount == null || deleteCount > 0) && this.length > 0) {
-            this.list[0].prepare();
+            this.list[0]!.prepare();
         }
         return part;
     }
@@ -446,10 +446,10 @@ export class Queue implements Iterable<Track<unknown>> {
         while (currentIndex > 0) {
             randomIndex = Math.floor(Math.random() * currentIndex);
             currentIndex--;
-            [this.list[currentIndex], this.list[randomIndex]] = [this.list[randomIndex], this.list[currentIndex]];
+            [this.list[currentIndex], this.list[randomIndex]] = [this.list[randomIndex]!, this.list[currentIndex]!];
         }
         if (this.list.length > 0) {
-            this.list[0].prepare();
+            this.list[0]!.prepare();
         }
     }
 }
@@ -671,55 +671,51 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         Player.cache.delete(this.guildId);
     }
 
-    public generateQueueMessage(page: number): MessagePayloadOption | null {
+    public generateQueueMessage(page: number): MessagePayloadOption {
         const totalPages = Math.max(Math.ceil(this.queue.length / MAX_PAGE_SIZE) - 1, 0);
         if (page < 0 || totalPages > 0 && page > totalPages || !Number.isSafeInteger(page)) {
             throw new RangeError(`page ${page} is invalid`);
         }
         if (!this.isPlaying()) {
-            return null;
-        }
-        if (this.queue.length === 0) {
-            return this.nowPlaying.toMessage();
+            return { components: [new TextDisplayBuilder().setContent('Nothing is playing.')] };
         }
         const container = new ContainerBuilder()
             .setAccentColor(Colors.DarkButNotBlack);
-        // Now Playing
+        // now playing
         if (page === 0) {
+            container
+                .addTextDisplayComponents(
+                    new TextDisplayBuilder()
+                        .setContent(
+                            [
+                                '### Now Playing:',
+                                ...this.nowPlaying.compactLines
+                            ].join('\n')
+                        )
+                );
+        }
+        // up next
+        if (this.queue.length > 0) {
+            if (page === 0) {
+                container.addSeparatorComponents(new SeparatorBuilder());
+            }
+            const start = page * MAX_PAGE_SIZE;
             container.addTextDisplayComponents(
                 new TextDisplayBuilder()
                     .setContent(
                         [
-                            '### Now Playing:',
-                            ...this.nowPlaying.compactLines
+                            '### Up Next:',
+                            ...this.queue.values()
+                                .drop(start)
+                                .take(MAX_PAGE_SIZE)
+                                .map((track, index) => formatListItem(`${index + start + 1}.`, track.compactLines))
                         ].join('\n')
                     )
-            )
+            );
         }
-        // Up Next
-        const start = page * MAX_PAGE_SIZE;
-        container.addTextDisplayComponents(
-            new TextDisplayBuilder()
-                .setContent(
-                    [
-                        '### Up Next:',
-                        ...this.queue.values()
-                            .drop(start)
-                            .take(MAX_PAGE_SIZE)
-                            .flatMap((track, index) => {
-                                const [title, ...lines] = track.compactLines;
-                                return [
-                                    `${index + start + 1}. ${title}`,
-                                    '      ',
-                                    ...lines.map(line => `  ${line}`)
-                                ]
-                            })
-                    ].join('\n')
-                )
-        );
-        // Footer
+        // footer
         const footerLines = [
-            `-# ${this.queue.length + 1} Items (${Duration.format((this.nowPlaying.duration ?? 0) + this.queue.duration)})`
+            `-# ${this.queue.length + 1} ${this.queue.length > 0 ? 'items' : 'item'} (${Duration.format((this.nowPlaying.duration ?? 0) + this.queue.duration)}) | ${time(new Date(), TimestampStyles.ShortDateShortTime)}`
         ];
         if (this.queue.length > MAX_PAGE_SIZE) {
             footerLines.push(`-# Page ${page + 1}/${totalPages + 1}`);
@@ -728,9 +724,33 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
             new TextDisplayBuilder()
                 .setContent(footerLines.join('\n'))
         );
+        // actions
+        const actionRow = new ActionRowBuilder<MessageActionRowComponentBuilder>();
+        if (page > 0) {
+            actionRow.addComponents(
+                new ButtonBuilder()
+                    .setEmoji('⬅️')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setCustomId(`QUEUE_PAGE:${page - 1}`)
+            );
+        }
+        actionRow.addComponents(
+            new ButtonBuilder()
+                .setEmoji('🔄')
+                .setStyle(ButtonStyle.Secondary)
+                .setCustomId(`QUEUE_PAGE:${page}`)
+        );
+        if (page < totalPages) {
+            actionRow.addComponents(
+                new ButtonBuilder()
+                    .setEmoji('➡️')
+                    .setStyle(ButtonStyle.Secondary)
+                    .setCustomId(`QUEUE_PAGE:${page + 1}`)
+            );
+        }
         return {
             flags: MessageFlags.IsComponentsV2,
-            components: [container]
+            components: [container, actionRow]
         };
     }
 

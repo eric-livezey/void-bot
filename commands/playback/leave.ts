@@ -1,10 +1,10 @@
 import { getVoiceConnection } from '@discordjs/voice';
 import { channelMention, InteractionContextType, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
-import { Command } from '..';
-import { CommandContext } from '../../context';
+import { CommandContext } from '../../context.js';
+import type { Command } from '../index.js';
 
 export async function leave(ctx: CommandContext<true>) {
-    if (ctx.isInteraction()) {
+    if (ctx.isSlashCommand()) {
         await ctx.deferReply();
     }
     const me = await ctx.guild.members.fetchMe();

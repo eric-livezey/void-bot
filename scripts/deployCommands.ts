@@ -1,9 +1,10 @@
-import { REST, RESTPutAPIApplicationCommandsResult, RESTPutAPIApplicationGuildCommandsResult, Routes } from 'discord.js';
+import { REST, type RESTPutAPIApplicationCommandsResult, type RESTPutAPIApplicationGuildCommandsResult, Routes } from 'discord.js';
 import fs from 'node:fs';
 import path from 'node:path';
-import config from '../config.json';
-import { Command } from '../commands';
-import { ConfigOptions } from '../utils';
+import { pathToFileURL } from 'node:url';
+import type { Command } from '../commands/index.js';
+import config from '../config.json' with { type: 'json' };
+import type { ConfigOptions } from '../utils.js';
 
 const { token, clientId, guildId } = config as ConfigOptions;
 const isTokenSet = token != null;
@@ -22,7 +23,7 @@ if (!isTokenSet || !isClientIdSet) {
 
 const commands = [];
 const guildCommands = [];
-const foldersPath = path.join(__dirname, '../commands');
+const foldersPath = path.relative('.', path.join(import.meta.dirname, '..', 'commands'));
 const commandFolders = fs.readdirSync(foldersPath);
 
 (async () => {
@@ -36,7 +37,7 @@ const commandFolders = fs.readdirSync(foldersPath);
                 const fileStat = fs.statSync(filePath);
                 if (fileStat.isFile() && path.extname(file) === '.js') {
                     const filePath = path.join(commandsPath, file);
-                    const module = await import(filePath);
+                    const module = await import(pathToFileURL(filePath).href);
                     const command = module.default as Command | undefined;
                     if (command != null) {
                         if (command.interaction) {

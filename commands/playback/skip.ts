@@ -1,7 +1,7 @@
 import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from 'discord.js';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
-import { canManagePlayback } from './play';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import type { Command } from '../index.js';
+import { canManagePlayback } from './play.js';
 
 export async function skip(ctx: CommandContext<true>, count?: number) {
     if (await canManagePlayback(ctx)) {
@@ -41,7 +41,7 @@ export default {
                 .setMinValue(1))
             .setContexts(InteractionContextType.Guild)
             .setDefaultMemberPermissions(permissions.bitfield),
-        async execute(ctx: InteractionContext<true>) {
+        async execute(ctx: SlashCommandContext<true>) {
             const options = ctx.interaction.options;
 
             const count = options.getInteger('count') ?? undefined;
@@ -54,7 +54,7 @@ export default {
             aliases: ['skip'],
             requiredPermissions: permissions,
             isDmRestricted: true,
-            async execute(ctx: MessageContext<true>) {
+            async execute(ctx: MessageCommandContext<true>) {
                 const [input] = ctx.getArguments(1);
 
                 let count;

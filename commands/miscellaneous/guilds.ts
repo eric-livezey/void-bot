@@ -1,6 +1,6 @@
-import { ActionRowBuilder, APIMessageTopLevelComponent, AutocompleteInteraction, ButtonBuilder, ButtonStyle, Collection, ContainerBuilder, Guild, JSONEncodable, MessageActionRowComponentBuilder, MessageFlags, MessagePayloadOption, PermissionsBitField, RESTPostAPIChannelInviteJSONBody, RESTPostAPIChannelInviteResult, RouteBases, Routes, SlashCommandBuilder, SlashCommandIntegerOption, SlashCommandStringOption, SlashCommandSubcommandBuilder, SlashCommandUserOption, Snowflake, TextDisplayBuilder } from 'discord.js';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
+import { ActionRowBuilder, type APIMessageTopLevelComponent, AutocompleteInteraction, ButtonBuilder, ButtonStyle, Collection, ContainerBuilder, Guild, type JSONEncodable, type MessageActionRowComponentBuilder, MessageFlags, type MessagePayloadOption, PermissionsBitField, type RESTPostAPIChannelInviteJSONBody, type RESTPostAPIChannelInviteResult, RouteBases, Routes, SlashCommandBuilder, SlashCommandIntegerOption, SlashCommandStringOption, SlashCommandSubcommandBuilder, SlashCommandUserOption, type Snowflake, TextDisplayBuilder } from 'discord.js';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import type { Command } from '../index.js';
 
 const MAX_PAGE_SIZE = 25;
 
@@ -99,7 +99,7 @@ async function handleGuildsInvite(ctx: CommandContext, guildId: Snowflake, maxAg
         await ctx.reply(url);
     } catch (error) {
         console.error(error);
-        await ctx.reply('The bot failed to create an invite', { ephemeral: true });
+        await ctx.reply({ flags: MessageFlags.Ephemeral, content: 'The bot failed to create an invite' });
     }
 }
 
@@ -172,7 +172,7 @@ export default {
                             .setRequired(true)
                     )
             ),
-        async execute(ctx: InteractionContext): Promise<void> {
+        async execute(ctx: SlashCommandContext): Promise<void> {
             const options = ctx.interaction.options;
             switch (options.getSubcommand(true)) {
                 case 'list':
@@ -207,7 +207,7 @@ export default {
             isOwnerOnly: true,
             aliases: ['guilds'],
             requiredPermissions: PERMISSIONS,
-            async execute(ctx: MessageContext): Promise<void> {
+            async execute(ctx: MessageCommandContext): Promise<void> {
                 const [subcommand, guildId] = ctx.getArguments(2);
                 if (!subcommand) {
                     await ctx.reply('`subcommand` is required.');

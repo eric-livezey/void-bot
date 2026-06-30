@@ -1,14 +1,15 @@
-import { AllowedMentionsTypes, Collection, Events, IntentsBitField, Message, MessageCreateOptions, MessageFlags, MessageMentionOptions, MessageMentions, MessagePayload, Partials, Poll, PollData, userMention } from 'discord.js';
+import { AllowedMentionsTypes, Collection, Events, IntentsBitField, Message, type MessageCreateOptions, MessageFlags, type MessageMentionOptions, MessageMentions, MessagePayload, Partials, Poll, type PollData, userMention } from 'discord.js';
 import { readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { Client, Command, InteractionCommand, MessageCommand } from './commands';
-import { generateQueueMessage } from './commands/playback/queue';
-import config from './config.json';
-import { InteractionContext, MessageContext } from './context';
-import { Player } from './player';
-import { TrackerManager } from './tracker';
-import { ConfigOptions, createVoiceConnection } from './utils';
-import { generateGuildsListMessage } from './commands/miscellaneous/guilds';
+import { pathToFileURL } from 'node:url';
+import { Client, type Command, type InteractionCommand, type MessageCommand } from './commands/index.js';
+import { generateGuildsListMessage } from './commands/miscellaneous/guilds.js';
+import { generateQueueMessage } from './commands/playback/queue.js';
+import config from './config.json' with { type: 'json' };
+import { MessageCommandContext, SlashCommandContext } from './context.js';
+import { Player } from './player.js';
+import { TrackerManager } from './tracker.js';
+import { type ConfigOptions, createVoiceConnection } from './utils.js';
 
 /**
  * Client gateway intents.
@@ -81,7 +82,7 @@ if (!isTokenSet) {
 // read commands
 const commands = new Collection<string, InteractionCommand>();
 const messageCommands = new Collection<string, MessageCommand>();
-const foldersPath = path.join(__dirname, 'commands');
+const foldersPath = path.join(path.relative('.', import.meta.dirname), 'commands');
 const commandFolders = readdirSync(foldersPath);
 
 (async () => {
@@ -99,7 +100,7 @@ const commandFolders = readdirSync(foldersPath);
                 // only read .js files
                 if (fileStat.isFile() && path.extname(file) === '.js') {
                     // import command
-                    const module = await import(filePath);
+                    const module = await import(pathToFileURL(filePath).href);
                     const command = module.default as Command || undefined;
                     // if the command provides a default export
                     if (command != null) {
@@ -172,7 +173,7 @@ const commandFolders = readdirSync(foldersPath);
             // commands
             if (isPrefixSet && message.content.startsWith(prefix)) {
                 // create context
-                const ctx = new MessageContext(message, prefix);
+                const ctx = new MessageCommandContext(message, prefix);
                 // find command
                 const command = client.messageCommands.get(ctx.commandName.toLowerCase());
 
@@ -219,7 +220,7 @@ const commandFolders = readdirSync(foldersPath);
     client.on(Events.InteractionCreate, async interaction => {
         if (interaction.isChatInputCommand()) {  // commands
             // create context
-            const ctx = new InteractionContext(interaction);
+            const ctx = new SlashCommandContext(interaction);
             // find command
             const command = client.commands.get(ctx.commandName);
 

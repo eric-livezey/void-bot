@@ -1,7 +1,7 @@
 import { InteractionContextType, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
-import { Command } from '..';
-import { CommandContext } from '../../context';
-import { canManagePlayback } from './play';
+import { CommandContext } from '../../context.js';
+import type { Command } from '../index.js';
+import { canManagePlayback } from './play.js';
 
 export async function shuffle(ctx: CommandContext<true>) {
     if (await canManagePlayback(ctx)) {

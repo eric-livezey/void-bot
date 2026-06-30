@@ -1,18 +1,18 @@
-import { MessageCreateOptions, PermissionsBitField, SlashCommandAttachmentOption, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption, User } from 'discord.js';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
-import { resolveUserId } from '../../utils';
+import { type MessageCreateOptions, MessageFlags, PermissionsBitField, SlashCommandAttachmentOption, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption, User } from 'discord.js';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import { resolveUserId } from '../../utils.js';
+import type { Command } from '../index.js';
 
 export async function dm(ctx: CommandContext, user: User, options: MessageCreateOptions) {
     try {
-        if (ctx.isInteraction()) {
+        if (ctx.isSlashCommand()) {
             await ctx.deferReply();
         }
         const channel = await user.createDM();
         await channel.send(options);
         await ctx.reply(options);
     } catch (error) {
-        await ctx.replyOrFollowUp((error as Error).message + '.', true);
+        await ctx.replyOrFollowUp({ flags: MessageFlags.Ephemeral, content: (error as Error).message + '.'});
     }
 }
 
@@ -34,7 +34,7 @@ export default {
                 .setDescription('Message attachment'))
             .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
         isGuildCommand: true,
-        async execute(ctx: InteractionContext) {
+        async execute(ctx: SlashCommandContext) {
             const options = ctx.interaction.options;
 
             const user = options.getUser('user', true);
@@ -52,7 +52,7 @@ export default {
         {
             aliases: ['dm'],
             isOwnerOnly: true,
-            async execute(ctx: MessageContext) {
+            async execute(ctx: MessageCommandContext) {
                 const [userParam, content] = ctx.getArguments(2);
                 const attachments = ctx.message.attachments;
 

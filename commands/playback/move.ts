@@ -1,7 +1,7 @@
 import { InteractionContextType, MessageFlags, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from 'discord.js';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
-import { canManagePlayback } from './play';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import type { Command } from '../index.js';
+import { canManagePlayback } from './play.js';
 
 export async function move(ctx: CommandContext<true>, source: number, destination: number) {
     if (await canManagePlayback(ctx)) {
@@ -53,7 +53,7 @@ export default {
                 .setRequired(true))
             .setContexts(InteractionContextType.Guild)
             .setDefaultMemberPermissions(permissions.bitfield),
-        async execute(ctx: InteractionContext<true>) {
+        async execute(ctx: SlashCommandContext<true>) {
             const { options } = ctx.interaction;
 
             const source = options.getInteger('source', true);
@@ -67,7 +67,7 @@ export default {
             aliases: ['move', 'mv'],
             requiredPermissions: permissions,
             isDmRestricted: true,
-            async execute(ctx: MessageContext<true>) {
+            async execute(ctx: MessageCommandContext<true>) {
                 const [sourceInput, destinationInput] = ctx.getArguments(2);
 
                 if (!sourceInput || !destinationInput) {

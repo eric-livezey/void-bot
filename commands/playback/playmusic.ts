@@ -1,10 +1,10 @@
 import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
 import { YTNodes } from 'youtubei.js';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
-import { getInnertubeInstance } from '../../innertube';
-import { Track } from '../../player';
-import { connectToSpeak, playTrack } from './play';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import { getInnertubeInstance } from '../../innertube.js';
+import { Track } from '../../player.js';
+import type { Command } from '../index.js';
+import { connectToSpeak, playTrack } from './play.js';
 
 function getVideoIdFromSearchResult(result: YTNodes.MusicResponsiveListItem) {
     if (result.id != null) {
@@ -30,7 +30,7 @@ export async function playMusic(ctx: CommandContext<true>, query: string) {
         await ctx.reply('There were no valid results for your query.');
         return;
     }
-    const videoId = getVideoIdFromSearchResult(items.songs.contents[0]);
+    const videoId = getVideoIdFromSearchResult(items.songs.contents[0]!);
     if (videoId == null) {
         await ctx.reply('Failed to extract video ID from search result.');
         return;
@@ -56,7 +56,7 @@ export default {
                 .setRequired(true))
             .setContexts(InteractionContextType.Guild)
             .setDefaultMemberPermissions(permissions.bitfield),
-        async execute(ctx: InteractionContext<true>) {
+        async execute(ctx: SlashCommandContext<true>) {
             const query = ctx.interaction.options.getString('query', true);
 
             await playMusic(ctx, query);
@@ -67,7 +67,7 @@ export default {
             aliases: ['playmusic', 'playm', 'pm'],
             requiredPermissions: permissions,
             isDmRestricted: true,
-            async execute(ctx: MessageContext<true>) {
+            async execute(ctx: MessageCommandContext<true>) {
                 const [query] = ctx.getArguments(1);
 
                 if (query == null) {

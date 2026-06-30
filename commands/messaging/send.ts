@@ -1,7 +1,7 @@
-import { ChannelType, MessageCreateOptions, PermissionsBitField, SendableChannels, SlashCommandAttachmentOption, SlashCommandBuilder, SlashCommandChannelOption, SlashCommandStringOption } from 'discord.js';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
-import { resolveChannelId } from '../../utils';
+import { ChannelType, type MessageCreateOptions, MessageFlags, PermissionsBitField, type SendableChannels, SlashCommandAttachmentOption, SlashCommandBuilder, SlashCommandChannelOption, SlashCommandStringOption } from 'discord.js';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import { resolveChannelId } from '../../utils.js';
+import type { Command } from '../index.js';
 
 const CHANNEL_TYPES = [
     ChannelType.GuildText,
@@ -15,13 +15,13 @@ const CHANNEL_TYPES = [
 
 export async function send(ctx: CommandContext, channel: SendableChannels, options: MessageCreateOptions) {
     try {
-        if (ctx.isInteraction()) {
+        if (ctx.isSlashCommand()) {
             await ctx.deferReply();
         }
         await channel.send(options);
         await ctx.reply('Message sent.');
     } catch (error) {
-        await ctx.replyOrFollowUp((error as Error).message + '.', true)
+        await ctx.replyOrFollowUp({ flags: MessageFlags.Ephemeral, content: (error as Error).message + '.' })
     }
 }
 
@@ -44,7 +44,7 @@ export default {
                 .setDescription('Message attachment'))
             .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator),
         isGuildCommand: true,
-        async execute(ctx: InteractionContext) {
+        async execute(ctx: SlashCommandContext) {
             const interaction = ctx.interaction;
 
             if (interaction.inCachedGuild()) {
@@ -65,7 +65,7 @@ export default {
         {
             aliases: ['send'],
             isOwnerOnly: true,
-            async execute(ctx: MessageContext) {
+            async execute(ctx: MessageCommandContext) {
                 const [channelParam, content] = ctx.getArguments(2);
                 const attachments = ctx.message.attachments;
 

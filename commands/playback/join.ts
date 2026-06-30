@@ -1,7 +1,7 @@
-import { channelMention, ChannelType, InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandChannelOption, VoiceBasedChannel } from 'discord.js';
-import { Command } from '..';
-import { CommandContext, InteractionContext, MessageContext } from '../../context';
-import { createVoiceConnection, resolveChannelId } from '../../utils';
+import { channelMention, ChannelType, InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandChannelOption, type VoiceBasedChannel } from 'discord.js';
+import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import { createVoiceConnection, resolveChannelId } from '../../utils.js';
+import type { Command } from '../index.js';
 
 export async function join(ctx: CommandContext<true>, channel?: VoiceBasedChannel) {
     if (!ctx.isOwner() && channel && !ctx.member.permissionsIn(channel).has(permissions)) {
@@ -13,7 +13,7 @@ export async function join(ctx: CommandContext<true>, channel?: VoiceBasedChanne
         await ctx.reply('You are not in a voice channel.');
         return;
     }
-    if (ctx.isInteraction()) {
+    if (ctx.isSlashCommand()) {
         await ctx.deferReply();
     }
     const me = await voiceChannel.guild.members.fetchMe();
@@ -42,7 +42,7 @@ export default {
                 .addChannelTypes(ChannelType.GuildVoice))
             .setContexts(InteractionContextType.Guild)
             .setDefaultMemberPermissions(permissions.bitfield),
-        async execute(ctx: InteractionContext<true>) {
+        async execute(ctx: SlashCommandContext<true>) {
             const options = ctx.interaction.options;
 
             const channel = options.getChannel('channel', false, [ChannelType.GuildVoice]) ?? undefined;
@@ -55,7 +55,7 @@ export default {
             aliases: ['join', 'connect'],
             requiredPermissions: permissions,
             isDmRestricted: true,
-            async execute(ctx: MessageContext<true>) {
+            async execute(ctx: MessageCommandContext<true>) {
                 const [input] = ctx.getArguments(1);
                 let channel;
                 if (input) {

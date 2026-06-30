@@ -4,7 +4,7 @@
   "description": "",
   "license": "ISC",
   "author": "Eric Livezey",
-  "type": "commonjs",
+  "type": "module",
   "main": "index.ts",
   "scripts": {
     "deploy-commands": "tsc && node build/scripts/deployCommands",
@@ -24,7 +24,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.0.1",
-    "eslint": "^10.5.0",
+    "eslint": "^10.6.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.0"
   }

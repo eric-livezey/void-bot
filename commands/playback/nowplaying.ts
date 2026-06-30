@@ -1,7 +1,7 @@
 import { InteractionContextType, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
-import { Command } from '..';
-import { CommandContext } from '../../context';
-import { canViewPlayback } from './play';
+import { CommandContext } from '../../context.js';
+import type { Command } from '../index.js';
+import { canViewPlayback } from './play.js';
 
 export async function nowPlaying(ctx: CommandContext<true>) {
     if (await canViewPlayback(ctx)) {
