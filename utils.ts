@@ -307,9 +307,6 @@ export function formatListItem(marker: ListItemMarker, arg: string | string[], d
     const [first, ...rest] = typeof arg === 'string' ? arg.split('\n') : arg;
     return [
         `${prefix}${marker} ${first ?? ZERO_WIDTH_SPACE}`,
-        // discord markdown cannot parse the following:
-        // - a line which begins with \s*[\w\d]+:[\w\d]
-        // - a line which beings with a list marker so -|*|[\d]+\.
         ...rest.map(line => `${prefix}  ${formatListItemLine(line)}`)
     ].join('\n');
 }
