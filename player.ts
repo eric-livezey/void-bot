@@ -715,7 +715,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         }
         // footer
         const footerLines = [
-            `-# ${this.queue.length + 1} ${this.queue.length > 0 ? 'items' : 'item'} (${Duration.format((this.nowPlaying.duration ?? 0) + this.queue.duration)}) | ${time(new Date(), TimestampStyles.ShortDateShortTime)}`
+            `-# ${this.queue.length + 1} ${this.queue.length > 0 ? 'items' : 'item'} (${Duration.format((this.nowPlaying.duration ?? 0) + this.queue.duration)}) | ${time(new Date(), TimestampStyles.RelativeTime)}`
         ];
         if (this.queue.length > MAX_PAGE_SIZE) {
             footerLines.push(`-# Page ${page + 1}/${totalPages + 1}`);
