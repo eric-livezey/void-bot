@@ -1,5 +1,6 @@
 import { ActionRowBuilder, type APIMessageTopLevelComponent, AutocompleteInteraction, ButtonBuilder, ButtonStyle, Collection, ContainerBuilder, Guild, type JSONEncodable, type MessageActionRowComponentBuilder, MessageFlags, type MessagePayloadOption, PermissionsBitField, type RESTPostAPIChannelInviteJSONBody, type RESTPostAPIChannelInviteResult, RouteBases, Routes, SlashCommandBuilder, SlashCommandIntegerOption, SlashCommandStringOption, SlashCommandSubcommandBuilder, SlashCommandUserOption, type Snowflake, TextDisplayBuilder } from 'discord.js';
 import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
+import { normalizeOptions } from '../../utils.js';
 import type { Command } from '../index.js';
 
 const MAX_PAGE_SIZE = 25;
@@ -93,7 +94,7 @@ async function handleGuildsInvite(ctx: CommandContext, guildId: Snowflake, maxAg
             ) as RESTPostAPIChannelInviteResult;
             url = `${RouteBases.invite}/${res.code}`;
         } else {
-            const invite = await guild.invites.create(channel, { maxAge, maxUses });
+            const invite = await guild.invites.create(channel, normalizeOptions({ maxAge, maxUses }));
             url = invite.url;
         }
         await ctx.reply(url);

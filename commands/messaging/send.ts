@@ -1,6 +1,6 @@
 import { ChannelType, type MessageCreateOptions, MessageFlags, PermissionsBitField, type SendableChannels, SlashCommandAttachmentOption, SlashCommandBuilder, SlashCommandChannelOption, SlashCommandStringOption } from 'discord.js';
 import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
-import { resolveChannelId } from '../../utils.js';
+import { normalizeOptions, resolveChannelId } from '../../utils.js';
 import type { Command } from '../index.js';
 
 const CHANNEL_TYPES = [
@@ -21,7 +21,7 @@ export async function send(ctx: CommandContext, channel: SendableChannels, optio
         await channel.send(options);
         await ctx.reply('Message sent.');
     } catch (error) {
-        await ctx.replyOrFollowUp({ flags: MessageFlags.Ephemeral, content: (error as Error).message + '.' })
+        await ctx.replyOrFollowUp({ flags: MessageFlags.Ephemeral, content: (Error.isError(error) ? error.message : String(error)) + '.' })
     }
 }
 
@@ -57,7 +57,7 @@ export default {
                     attachments.push(attachment);
                 }
 
-                await send(ctx, channel, { content, files: attachments.map(attachment => attachment.url) });
+                await send(ctx, channel, normalizeOptions({ content, files: attachments.map(attachment => attachment.url) }));
             }
         }
     },
@@ -82,7 +82,7 @@ export default {
                     return;
                 }
 
-                await send(ctx, channel, { content, files: attachments.map(attachment => attachment.url) });
+                await send(ctx, channel, normalizeOptions({ content, files: attachments.map(attachment => attachment.url) }));
             }
         }
     ]

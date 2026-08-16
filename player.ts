@@ -10,7 +10,8 @@ import { ReadableStream } from 'node:stream/web';
 import sharp from 'sharp';
 import { YT, YTNodes } from 'youtubei.js';
 import { getInnertubeInstance } from './innertube.js';
-import { channelURL, Duration, formatListItem, generateVideoThumbnailURL, getCachedThumbnailURL, normalizeURL, parseYTDuration, videoURL } from './utils.js';
+import { channelURL, Duration, formatListItem, generateVideoThumbnailURL, getCachedThumbnailURL, normalizeOptions, normalizeURL, type Options, parseYTDuration, videoURL } from './utils.js';
+import assert from 'node:assert';
 
 const AUDIO_CACHE_DIR = path.join('cache', 'audio');
 const SHOULD_DOWNLOAD = false;
@@ -32,13 +33,13 @@ export interface TrackAuthor {
     readonly iconURL: string | null;
 }
 
+export type TrackAuthorOptions = Options<TrackAuthor>;
+
 export interface TrackOptions {
-    url?: string;
-    thumbnail?: AttachmentBuilder | string;
-    duration?: number;
-    author?: {
-        -readonly [P in keyof TrackAuthor]?: Exclude<TrackAuthor[P], null>;
-    }
+    url?: string | undefined;
+    thumbnail?: AttachmentBuilder | string | undefined;
+    duration?: number | undefined;
+    author?: TrackAuthorOptions | undefined
 }
 
 export type PrepareFunction<M = null> = () => Promise<AudioResource<M>> | AudioResource<M>;
@@ -157,19 +158,26 @@ export class Track<M = null> {
      * @param info An innertube video info object.
      */
     public static fromVideoInfo(info: YT.VideoInfo): Track {
-        const { basic_info: videoDetails } = info;
-        const videoId = videoDetails.id!;
+        if (info.playability_status?.status === 'LOGIN_REQUIRED') {
+            throw new Error(info.playability_status.reason === 'Sign in to confirm your age' ? 'Video is age restricted.' : 'Video requires YouTube login.');
+        }
+        const videoDetails = info.basic_info;
+        const videoId = videoDetails.id;
+        assert(videoId != null, 'Failed to resolve video ID');
         const prepare = createYtDlpPrepare(videoId);
+        const duration = videoDetails.duration;
+        const channel = videoDetails.channel;
+        const channelId = channel?.id;
         const details = {
             url: videoURL(videoId, true),
             thumbnail: generateVideoThumbnailURL(videoId),
-            duration: info.basic_info.duration! * 1000,
+            duration: duration != null ? duration * 1000 : undefined,
             author: {
-                name: videoDetails.author!,
-                url: channelURL(videoDetails.channel!.id!)
+                name: videoDetails.author ?? channel?.name,
+                url: channelId ? channelURL(channelId) : undefined
             }
         } satisfies TrackOptions;
-        return new Track(prepare, videoDetails.title!, details);
+        return new Track(prepare, videoDetails.title ?? 'Unknown', details);
     }
     /**
      * Creates a track from a YouTube video search result.
@@ -229,7 +237,7 @@ export class Track<M = null> {
             author = {
                 name: authorText.toString(),
                 url: authorText.endpoint?.toURL()
-            };
+            } satisfies TrackAuthorOptions;
         }
         const details = {
             url: videoURL(videoId, true),
@@ -247,15 +255,18 @@ export class Track<M = null> {
      * @param item An album item.
      */
     public static fromAlbumItem(item: YTNodes.MusicResponsiveListItem): Track {
-        const videoId = item.id!;
+        const videoId = item.id;
+        assert(videoId != null, 'Failed to resolve video ID');
         const prepare = createYtDlpPrepare(videoId);
+        const seconds = item.duration?.seconds;
+        const artist = item.artists?.[0];
         const details = {
             url: videoURL(videoId, true),
             thumbnail: generateVideoThumbnailURL(videoId),
-            duration: item.duration!.seconds * 1000,
+            duration: seconds ? seconds * 1000 : undefined,
             author: {
-                name: item.artists![0]!.name,
-                url: item.artists![0]!.endpoint?.toURL()
+                name: artist?.name,
+                url: artist?.endpoint?.toURL()
             }
         } satisfies TrackOptions;
         return new Track(prepare, item.title?.toString() ?? 'Unknown', details);
@@ -284,7 +295,12 @@ export class Track<M = null> {
      */
     public prepare(): void {
         if (!this.isPrepared()) {
-            this.audioResource = new Promise<AudioResource<M>>(resolve => { resolve(this.preparefn()) }).catch(error => { this.error = error; return null; });
+            this.audioResource = new Promise<AudioResource<M>>(resolve => {
+                resolve(this.preparefn());
+            }).catch(error => {
+                this.error = error;
+                return null;
+            });
         }
     }
     /**
@@ -292,7 +308,7 @@ export class Track<M = null> {
      */
     public async resolve(): Promise<AudioResource<M>> {
         if (this.isResolved()) {
-            return this.resource as Promise<AudioResource<M>>;
+            return this.resource as AudioResource<M>;
         }
         this.prepare();
         this.audioResource = await this.resource;
@@ -332,7 +348,7 @@ export class Track<M = null> {
             eb.setURL(this.url);
         }
         if (this.author.name != null) {
-            eb.setAuthor({ name: this.author.name, url: this.author.url ?? undefined, iconURL: this.author.iconURL ?? undefined });
+            eb.setAuthor(normalizeOptions(this.author as TrackAuthor & { name: string }, true));
         }
         if (this.thumbnail != null) {
             if (this.thumbnail instanceof AttachmentBuilder) {
@@ -523,14 +539,15 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
      * @param guildId A guild ID.
      */
     public static of(guildId: Snowflake): Player {
-        if (!this.cache.has(guildId)) {
-            const player = new Player(guildId);
+        let player = this.cache.get(guildId);
+        if (!player) {
+            player = new Player(guildId);
             player.on('error', error => {
                 console.error(error);
             });
             this.cache.set(guildId, player);
         }
-        return this.cache.get(guildId)!;
+        return player;
     }
     /**
      * Returns whether the player is ready to play audio.
@@ -593,7 +610,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
             this.stop();
         } else if (value instanceof VoiceConnection) {
             this.setConnection(null);
-            this.subscription = value.subscribe(this.audioPlayer) as PlayerSubscription;
+            this.subscription = value.subscribe(this.audioPlayer)!;
             value.on('stateChange', (_oldState, newState) => {
                 if (newState.status === VoiceConnectionStatus.Destroyed || newState.status === VoiceConnectionStatus.Disconnected) {
                     this.stop();
@@ -818,7 +835,7 @@ function validateResponse(res: Response): asserts res is Response & { body: Excl
 }
 
 // keep track of in progress downloads
-const DOWNLOADS = new Map<string, Promise<string>>();// {} as Record<string, Promise<string>>;
+const DOWNLOADS = new Map<string, Promise<string>>();
 
 const DefaultCreateAudioResourceOptions = {
     inlineVolume: true
@@ -839,11 +856,8 @@ function createDownloadPrepare(id: string, fn: (path: string) => Promise<string>
 }
 
 function createStreamPrepare(fn: () => Promise<Readable> | Readable): PrepareFunction {
-    return function () {
-        const result = fn();
-        return result instanceof Promise
-            ? result.then(stream => createAudioResource(stream, DefaultCreateAudioResourceOptions))
-            : createAudioResource(result, DefaultCreateAudioResourceOptions);
+    return async function () {
+        return createAudioResource(await fn(), DefaultCreateAudioResourceOptions);
     }
 }
 
@@ -911,33 +925,62 @@ function downloadAudio(videoId: string, path: string): Promise<string> {
     return promise;
 }
 
-function getYtDlpStream(videoId: string) {
-    // return current download or create new promise to resolve downloaded audio
-    // arguments
-    const args = [
+async function getYtDlpStream(videoId: string, maxRetries: number = MAX_RETRIES): Promise<Readable> {
+    for (let n = 0; n < maxRetries - 1; n++) {
+        try {
+            return await _getYtDlpStream(videoId);
+        } catch (error) {
+            if (Error.isError(error) && error.message.includes('Sign in to confirm your age')) {
+                throw new Error('The video is age-restricted.', { cause: error });
+            }
+        }
+    }
+    return await _getYtDlpStream(videoId);
+}
+
+function _getYtDlpStream(videoId: string): Promise<Readable> {
+    const proc = spawn('yt-dlp', [
         '-f', 'bestaudio',
         '-o', '-',
         '--quiet',
         videoId.startsWith('-') ? videoURL(videoId, true) : videoId
-    ];
+    ]);
+    const { stdout, stderr } = proc;
 
-    // spawn yt-dlp
-    const proc = spawn('yt-dlp', args);
+    return new Promise((resolve, reject) => {
+        let resolved = false;
+        let errorMessage: string | null = null;
 
-    // log error messages
-    // proc.stderr.pipe(process.stderr);
+        stdout.once('data', (chunk: unknown) => {
+            resolved = true;
 
-    const stream = proc.stdout;
-    proc.on('error', (error) => {
-        stream.emit('error', error);
+            stdout.pause();
+            stdout.unshift(chunk);
+
+            resolve(stdout);
+        });
+
+        stderr.once('data', (chunk: unknown) => {
+            errorMessage = (errorMessage ?? '') + String(chunk);
+        });
+
+        proc.once('error', (error) => {
+            if (!resolved) {
+                reject(error);
+            } else {
+                stdout.destroy(error);
+            }
+        });
+
+        proc.once('close', (code) => {
+            const message = errorMessage ?? `yt-dlp exited with code ${code}`;
+            if (!resolved) {
+                reject(new Error(message));
+            } else if (code !== 0) {
+                stdout.destroy(
+                    new Error(message)
+                );
+            }
+        });
     });
-
-    // resolve or reject on closes
-    proc.once('close', code => {
-        if (code !== 0) {
-            stream.emit('error', `yt-dlp exited with code ${code}.`);
-        }
-    });
-
-    return stream;
 }

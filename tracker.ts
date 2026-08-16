@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import Innertube, { YT, YTNodes } from 'youtubei.js';
 import { getInnertubeInstance } from './innertube.js';
+import { normalizeOptions } from './utils.js';
 
 /**
  * Path to the tracker cache file.
@@ -64,17 +65,17 @@ interface TrackerDetails {
 }
 
 interface BaseCreateChannelOptions {
-    guild?: Guild;
-    innertube?: Innertube;
-    details?: TrackerDetails;
+    guild?: Guild | undefined;
+    innertube?: Innertube | undefined;
+    details?: TrackerDetails | undefined;
 }
 
 interface CreateCategoryChannelOptions extends BaseCreateChannelOptions {
-    title?: string;
+    title?: string | undefined;
 }
 
 interface CreateDetailChannelOptions extends BaseCreateChannelOptions {
-    detail?: string;
+    detail?: string | undefined;
 }
 
 interface TrackerChannels {
@@ -94,14 +95,14 @@ function getTrackers(client: Client) {
         const data = JSON.parse(buffer.toString('utf8')) as JSONTracker[];
         for (const json of data) {
             const { type, guildId, resourceId: id } = json;
-            if (!trackers.has(guildId)) {
-                trackers.set(guildId, new Map());
+            let guildTrackers = trackers.get(guildId);
+            if (!guildTrackers) {
+                trackers.set(guildId, guildTrackers = new Map());
             }
-            const guildTrackers = trackers.get(guildId)!;
-            if (!guildTrackers.has(type)) {
-                guildTrackers.set(type, new Map());
+            let resourceTrackers = guildTrackers.get(type);
+            if (!resourceTrackers) {
+                guildTrackers.set(type, resourceTrackers = new Map());
             }
-            const resourceTrackers = guildTrackers.get(type)!;
             resourceTrackers.set(id, ResourceTracker.fromJSON(client, json));
         }
     }
@@ -184,7 +185,7 @@ abstract class ResourceTracker {
         let { title, detail } = await this.fetchDetails(innertube);
         title ??= this.details?.detail;
         detail ??= this.details?.title;
-        return this.details = { title, detail };
+        return this.details = normalizeOptions({ title, detail });
     }
     private async createCategoryChannel(options?: CreateCategoryChannelOptions) {
         const guild = options?.guild ?? await this.client.guilds.fetch(this.guildId);
@@ -204,7 +205,7 @@ abstract class ResourceTracker {
         if (title == null || detail == null) {
             details ??= await this.fetchDetailsAndUpdateCache(options?.innertube);
         }
-        return { categoryChannel: { id: this.categoryChannelId }, detailChannel: { id: this.detailChannelId } } = await createChannels(this.identifier, guild, title ?? details!.title ?? 'Unknown', detail ?? details!.detail ?? 'Unknown');
+        return { categoryChannel: { id: this.categoryChannelId }, detailChannel: { id: this.detailChannelId } } = await createChannels(this.identifier, guild, title ?? details?.title ?? 'Unknown', detail ?? details?.detail ?? 'Unknown');
     }
     private async fetchChannels(): Promise<_Nullable<TrackerChannels>> {
         const { channels } = this.client;
@@ -267,13 +268,13 @@ abstract class ResourceTracker {
         return this instanceof VideoTracker;
     }
     public toJSON(): JSONTracker {
-        return {
+        return normalizeOptions({
             type: this.type,
             guildId: this.guildId,
             categoryChannelId: this.categoryChannelId ?? undefined,
             detailChannelId: this.detailChannelId ?? undefined,
             resourceId: this.resourceId
-        }
+        });
     }
     public static fromJSON(client: Client, json: JSONTracker): ResourceTracker {
         switch (json.type) {
@@ -297,7 +298,7 @@ class VideoTracker extends ResourceTracker {
     protected async fetchDetails(innertube?: Innertube) {
         innertube ??= await getInnertubeInstance();
         const { basic_info: { title, view_count: viewCount } } = await innertube.getBasicInfo(this.resourceId);
-        return { title, detail: viewCount != null ? `${formatViewCount(viewCount)} views` : undefined };
+        return normalizeOptions({ title, detail: viewCount != null ? `${formatViewCount(viewCount)} views` : undefined });
     }
     public static fromJSON(client: Client, json: JSONTracker) {
         return new this(client, json.guildId, json.resourceId, json.categoryChannelId, json.detailChannelId);
@@ -316,7 +317,7 @@ class ChannelTracker extends ResourceTracker {
     protected async fetchDetails(innertube?: Innertube) {
         innertube ??= await getInnertubeInstance();
         const channel = await innertube.getChannel(this.resourceId) as YT.Channel & { header?: YTNodes.PageHeader };
-        return { title: channel.metadata.title, detail: channel.header?.content?.metadata?.metadata_rows[1]?.metadata_parts?.[0]?.text?.toString() };
+        return normalizeOptions({ title: channel.metadata.title, detail: channel.header?.content?.metadata?.metadata_rows[1]?.metadata_parts?.[0]?.text?.toString() });
     }
     public static fromJSON(client: Client, json: JSONTracker) {
         return new this(client, json.guildId, json.resourceId, json.categoryChannelId, json.detailChannelId);
@@ -351,24 +352,26 @@ export class TrackerManager {
     }
 
     public static of(client: Client) {
-        if (!this.cache.has(client)) {
-            this.cache.set(client, new TrackerManager(client));
+        let manager = this.cache.get(client);
+        if (!manager) {
+            this.cache.set(client, manager = new TrackerManager(client));
         }
-        return this.cache.get(client)!;
+        return manager;
     }
     private mapForGuild(guildId: string) {
-        if (!this.trackers.has(guildId)) {
-            this.trackers.set(guildId, new Map());
+        let guildTrackers = this.trackers.get(guildId);
+        if (!guildTrackers) {
+            this.trackers.set(guildId, guildTrackers = new Map());
         }
-        return this.trackers.get(guildId)!;
+        return guildTrackers;
     }
     private mapForType(guildId: string, type: ResourceType) {
-        const map = this.mapForGuild(guildId);
-
-        if (!map.has(type)) {
-            map.set(type, new Map());
+        const guildTrackers = this.mapForGuild(guildId);
+        let trackers = guildTrackers.get(type);
+        if (!trackers) {
+            guildTrackers.set(type, trackers = new Map());
         }
-        return map.get(type)!;
+        return trackers;
     }
     private has(guildId: string, type: ResourceType, resourceId: string) {
         return this.trackers.get(guildId)?.get(type)?.has(resourceId) === true;

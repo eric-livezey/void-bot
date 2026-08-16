@@ -236,8 +236,13 @@ const CHANNEL_MENTION_REGEXP = RegExp(`^<#(${SNOWFLAKE_PATTERN.source})>$`);
 const CHANNEL_URL_REGEXP = RegExp(`^https://discord\\.com/channels/${SNOWFLAKE_PATTERN.source}/(${SNOWFLAKE_PATTERN.source})$`)
 const ROLE_MENTION_REGEXP = RegExp(`^<@&(${SNOWFLAKE_PATTERN.source})>$`);
 function resolveDiscordId(input: string, ...expressions: RegExp[]): string | null {
-    let match: RegExpMatchArray | null;
-    return expressions.some(exp => match = input.match(exp)) ? match![1]! : resolveSnowflake(input);
+    let match: RegExpMatchArray | null | undefined;
+    for (const exp of expressions) {
+        if ((match = input.match(exp)) != null) {
+            continue;
+        }
+    }
+    return match?.[1] ?? resolveSnowflake(input);
 }
 /**
  * Resolves a snowflake from a string.
@@ -582,4 +587,33 @@ export function getCachedThumbnailURL(key: string): string | null {
 }
 export function isOwner(userId: Snowflake) {
     return OWNER_ID != null && userId === OWNER_ID;
+}
+type NormalizeProperties<T, Key extends keyof T, Excluded = never, Optional = never> =
+    & {
+        [P in Exclude<keyof T, Key>]: T[P];
+    }
+    & {
+        [P in Key]?: Exclude<T[P], Excluded> | Optional;
+    };
+type OptionalKeys<T, OptionalType = undefined> = {
+    [P in keyof T]-?: object extends Pick<T, P> ? P : Extract<T[P], OptionalType> extends never ? never : P
+}[keyof T];
+type OptionalOrNullableKeys<T> = OptionalKeys<T, null | undefined>;
+export type Options<T> = NormalizeProperties<T, OptionalOrNullableKeys<T>, null, undefined>;
+export type Normalize<T> = NormalizeProperties<T, OptionalKeys<T>, undefined>;
+/**
+ * Excludes properties from an object which are `undefined`.
+ * 
+ * @param object An object
+ * @param excludeNull `true` if `null` properties should also be treated `undefined`
+ */
+export function normalizeOptions<T extends object>(object: T, excludeNull?: false): Normalize<T>;
+export function normalizeOptions<T extends object>(object: T, excludeNull: true): NormalizeProperties<T, OptionalOrNullableKeys<T>, null>;
+export function normalizeOptions<T extends object>(object: T, excludeNull?: boolean): Normalize<T> {
+    return Object.entries(object).reduce((result, [key, value]) => {
+        if (value !== undefined && (!excludeNull || value !== null)) {
+            result[key as keyof Normalize<T>] = value;
+        }
+        return result;
+    }, {} as Partial<Normalize<T>>) as Normalize<T>;
 }

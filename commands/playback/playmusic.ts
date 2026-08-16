@@ -1,5 +1,5 @@
 import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
-import { YTNodes } from 'youtubei.js';
+import { Utils, YTNodes } from 'youtubei.js';
 import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
 import { getInnertubeInstance } from '../../innertube.js';
 import { Track } from '../../player.js';
@@ -7,10 +7,7 @@ import type { Command } from '../index.js';
 import { connectToSpeak, playTrack } from './play.js';
 
 function getVideoIdFromSearchResult(result: YTNodes.MusicResponsiveListItem) {
-    if (result.id != null) {
-        return result.id;
-    }
-    return [
+    return result.id ?? [
         result.endpoint,
         result.overlay?.content?.endpoint,
         ...result.menu?.contents
@@ -30,13 +27,26 @@ export async function playMusic(ctx: CommandContext<true>, query: string) {
         await ctx.reply('There were no valid results for your query.');
         return;
     }
-    const videoId = getVideoIdFromSearchResult(items.songs.contents[0]!);
-    if (videoId == null) {
+    const song = items.songs.contents[0];
+    let videoId;
+    if (!song || (videoId = getVideoIdFromSearchResult(song)) == null) {
         await ctx.reply('Failed to extract video ID from search result.');
         return;
     }
-    const track = await Track.fromVideoId(videoId);
-
+    let track;
+    try {
+        track = await Track.fromVideoId(videoId);
+    } catch (error) {
+        if (error instanceof Utils.InnertubeError) {
+            await ctx.reply('The video URL is invalid.');
+        } else if (Error.isError(error)) {
+            await ctx.reply(error.message);
+        } else {
+            console.error(error);
+            await ctx.reply('An unexpected error ocurred.');
+        }
+        return;
+    }
     await playTrack(ctx, track);
 }
 

@@ -14,18 +14,18 @@
   "dependencies": {
     "@discordjs/voice": "^0.19.2",
     "@snazzah/davey": "^0.1.12",
-    "discord.js": "^14.26.4",
+    "discord.js": "^14.27.0",
     "mathjs": "^15.2.0",
-    "music-metadata": "^11.13.0",
+    "music-metadata": "^11.14.0",
     "opusscript": "^0.1.1",
-    "sharp": "^0.34.5",
-    "youtubei.js": "^17.2.0"
+    "sharp": "^0.35.3",
+    "youtubei.js": "^18.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^26.0.1",
-    "eslint": "^10.6.0",
+    "@types/node": "^26.2.0",
+    "eslint": "^10.8.1",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.0"
+    "typescript-eslint": "^8.67.0"
   }
 }

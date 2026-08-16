@@ -9,7 +9,7 @@ import config from './config.json' with { type: 'json' };
 import { MessageCommandContext, SlashCommandContext } from './context.js';
 import { Player } from './player.js';
 import { TrackerManager } from './tracker.js';
-import { type ConfigOptions, createVoiceConnection } from './utils.js';
+import { type ConfigOptions, createVoiceConnection, normalizeOptions } from './utils.js';
 
 /**
  * Client gateway intents.
@@ -40,19 +40,19 @@ function _messageMentionsToOptions(mentions: MessageMentions): MessageMentionOpt
 function _pollToOptions(poll: Poll): PollData {
     return {
         question: poll.question,
-        answers: poll.answers.map(answer => ({
+        answers: poll.answers.map(answer => (normalizeOptions({
             text: answer.text ?? '',
             emoji: answer.emoji?.identifier ?? undefined
-        })),
+        }))),
         duration: poll.expiresTimestamp ? Math.ceil((poll.expiresTimestamp - Date.now()) / 3.6e+6) : 24,
         allowMultiselect: poll.allowMultiselect,
         layoutType: poll.layoutType
-    }
+    };
 }
 
 function _messageToCreateOptions(message: Message): MessageCreateOptions {
-    return {
-        content: message.content ?? undefined,
+    return normalizeOptions({
+        content: message.content,
         embeds: message.embeds.map(embed => embed.toJSON()),
         allowedMentions: _messageMentionsToOptions(message.mentions),
         files: message.attachments.map(attachment => attachment.url),
@@ -61,7 +61,7 @@ function _messageToCreateOptions(message: Message): MessageCreateOptions {
         tts: message.tts,
         stickers: message.stickers.toJSON(),
         flags: message.flags.bitfield & (MessageFlags.SuppressEmbeds | MessageFlags.SuppressNotifications | MessageFlags.IsComponentsV2)
-    }
+    });
 }
 
 // add date and time to logs
@@ -101,7 +101,7 @@ const commandFolders = readdirSync(foldersPath);
                 if (fileStat.isFile() && path.extname(file) === '.js') {
                     // import command
                     const module = await import(pathToFileURL(filePath).href);
-                    const command = module.default as Command || undefined;
+                    const command = module.default as Partial<Command> | undefined;
                     // if the command provides a default export
                     if (command != null) {
                         // if the command provides an interaction

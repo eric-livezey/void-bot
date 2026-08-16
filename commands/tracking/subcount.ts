@@ -18,7 +18,7 @@ export async function subscriberCount(ctx: CommandContext<true>, input: string) 
                 await ctx.reply({ flags: MessageFlags.Ephemeral, content: 'That channel is already being tracked.' });
             }
         } catch (error) {
-            await ctx.replyOrFollowUp({ flags: MessageFlags.Ephemeral, content: (error as Error).message + '.' });
+            await ctx.replyOrFollowUp({ flags: MessageFlags.Ephemeral, content: (Error.isError(error) ? error.message : String(error)) + '.' });
         }
     } else {
         await ctx.reply({ flags: MessageFlags.Ephemeral, content: 'You must provide a valid YouTube channel URL.' });

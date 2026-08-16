@@ -1,5 +1,5 @@
 import { Attachment, channelMention, EmbedBuilder, InteractionContextType, MessageFlags, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
-import { YT, YTNodes } from 'youtubei.js';
+import { Utils, YT, YTNodes } from 'youtubei.js';
 import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
 import { getInnertubeInstance } from '../../innertube.js';
 import { Track } from '../../player.js';
@@ -123,7 +123,7 @@ export async function playTrack(ctx: CommandContext<true>, track: Track, thumbna
     }
 }
 
-export async function play(ctx: CommandContext<true>, { input, attachment }: { input?: string, attachment?: Attachment }) {
+export async function play(ctx: CommandContext<true>, { input, attachment }: { input?: string | undefined, attachment?: Attachment | undefined }) {
     if (await connectToSpeak(ctx)) {
         if (attachment) {
             try {
@@ -133,20 +133,29 @@ export async function play(ctx: CommandContext<true>, { input, attachment }: { i
             } catch {
                 await ctx.reply('The URL is invalid.');
             }
-        } else if (input) {
+        } else if (input != null) {
             const innertube = await getInnertubeInstance();
-            const url = resolveURL(input!);
+            const url = resolveURL(input);
             if (url) {
                 // URL
                 const videoId = extractVideoId(url);
                 if (videoId != null) {
                     // video URL
-                    const track = await Track.fromVideoId(videoId).catch(() => null);
-                    if (track) {
-                        await playTrack(ctx, track);
-                    } else {
-                        await ctx.reply('The video URL is invalid.');
+                    let track;
+                    try {
+                        track = await Track.fromVideoId(videoId);
+                    } catch (error) {
+                        if (error instanceof Utils.InnertubeError) {
+                            await ctx.reply('The video URL is invalid.');
+                        } else if (Error.isError(error)) {
+                            await ctx.reply(`Error: ${error.message}`);
+                        } else {
+                            console.error(error);
+                            await ctx.reply('An unexpected error ocurred.');
+                        }
+                        return;
                     }
+                    await playTrack(ctx, track);
                     return;
                 }
                 const playlistId = extractPlaylistId(url);
@@ -217,12 +226,21 @@ export default {
             requiredPermissions: permissions,
             isDmRestricted: true,
             async execute(ctx: MessageCommandContext<true>) {
-                const [input] = ctx.getArguments(1);
+                let [input] = ctx.getArguments(1);
                 const attachment = ctx.message.attachments.first();
 
                 if (!input && !attachment) {
                     await resume(ctx);
                     return;
+                }
+
+                if (input?.startsWith('<') && input.endsWith('>')) {
+                    // input is surrounded by sharp brackets, check if the inner content is a URL
+                    const innerContent = input.substring(1, input.length - 1);
+                    if (URL.canParse(innerContent)) {
+                        // input is a url with auto-embedding suppressed, so strip the sharp brackets
+                        input = innerContent;
+                    }
                 }
 
                 await play(ctx, { input, attachment });

@@ -1,6 +1,6 @@
 import { type MessageCreateOptions, MessageFlags, PermissionsBitField, SlashCommandAttachmentOption, SlashCommandBuilder, SlashCommandStringOption, SlashCommandUserOption, User } from 'discord.js';
 import { CommandContext, MessageCommandContext, SlashCommandContext } from '../../context.js';
-import { resolveUserId } from '../../utils.js';
+import { normalizeOptions, resolveUserId } from '../../utils.js';
 import type { Command } from '../index.js';
 
 export async function dm(ctx: CommandContext, user: User, options: MessageCreateOptions) {
@@ -12,7 +12,7 @@ export async function dm(ctx: CommandContext, user: User, options: MessageCreate
         await channel.send(options);
         await ctx.reply(options);
     } catch (error) {
-        await ctx.replyOrFollowUp({ flags: MessageFlags.Ephemeral, content: (error as Error).message + '.'});
+        await ctx.replyOrFollowUp({ flags: MessageFlags.Ephemeral, content: (Error.isError(error) ? error.message : String(error)) + '.' });
     }
 }
 
@@ -45,7 +45,7 @@ export default {
                 attachments.push(attachment);
             }
 
-            await dm(ctx, user, { content, files: attachments.map(attachment => attachment.url) });
+            await dm(ctx, user, normalizeOptions({ content, files: attachments.map(attachment => attachment.url) }));
         }
     },
     message: [
@@ -69,7 +69,7 @@ export default {
                     return;
                 }
 
-                await dm(ctx, user, { content, files: attachments.map(attachment => attachment.url) });
+                await dm(ctx, user, normalizeOptions({ content, files: attachments.map(attachment => attachment.url) }));
             }
         }
     ]

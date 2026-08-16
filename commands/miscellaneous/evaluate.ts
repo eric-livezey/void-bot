@@ -12,7 +12,7 @@ export async function execute(ctx: CommandContext, expression: string) {
             await ctx.reply('Cannot evaluate custom functions.');
         }
     } catch (error) {
-        await ctx.reply((error as Error).message);
+        await ctx.reply(Error.isError(error) ? error.message : String(error));
     }
 }
 
