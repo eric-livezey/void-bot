@@ -1,9 +1,9 @@
 import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, type CreateAudioResourceOptions, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 import { ActionRowBuilder, type APIEmbedField, AttachmentBuilder, ButtonBuilder, ButtonStyle, Colors, ContainerBuilder, EmbedBuilder, type MessageActionRowComponentBuilder, MessageFlags, type MessagePayloadOption, type RestOrArray, SeparatorBuilder, type Snowflake, TextDisplayBuilder, time, TimestampStyles } from 'discord.js';
 import { parseWebStream } from 'music-metadata';
-import { spawn } from 'node:child_process';
+import assert from 'node:assert';
 import { EventEmitter } from 'node:events';
-import { existsSync, mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { ReadableStream } from 'node:stream/web';
@@ -11,9 +11,9 @@ import sharp from 'sharp';
 import { YT, YTNodes } from 'youtubei.js';
 import { getInnertubeInstance } from './innertube.js';
 import { channelURL, Duration, formatListItem, generateVideoThumbnailURL, getCachedThumbnailURL, normalizeOptions, normalizeURL, type Options, parseYTDuration, videoURL } from './utils.js';
-import assert from 'node:assert';
+import * as ytdlp from './ytdlp.js';
 
-const AUDIO_CACHE_DIR = path.join('cache', 'audio');
+const AUDIO_CACHE_DIR = path.join('.', 'cache', 'audio');
 const SHOULD_DOWNLOAD = false;
 const MAX_RETRIES = 5;
 const MAX_PAGE_SIZE = 20;
@@ -834,9 +834,6 @@ function validateResponse(res: Response): asserts res is Response & { body: Excl
     }
 }
 
-// keep track of in progress downloads
-const DOWNLOADS = new Map<string, Promise<string>>();
-
 const DefaultCreateAudioResourceOptions = {
     inlineVolume: true
 } satisfies CreateAudioResourceOptions<null>;
@@ -865,122 +862,8 @@ function createStreamPrepare(fn: () => Promise<Readable> | Readable): PrepareFun
 
 function createYtDlpPrepare(videoId: string, download = SHOULD_DOWNLOAD): PrepareFunction {
     if (download) {
-        return createDownloadPrepare(videoId, (path: string) => {
-            let attempts = 0;
-            while (attempts < MAX_RETRIES) {
-                try {
-                    return downloadAudio(videoId, path);
-                } catch {
-                    attempts++;
-                }
-            }
-            throw new Error('Audio download failed after 5 attempts.');
-        });
+        return createDownloadPrepare(videoId, path => ytdlp.download(videoId, path, MAX_RETRIES).then(() => path));
     } else {
-        return createStreamPrepare(() => getYtDlpStream(videoId));
+        return createStreamPrepare(() => ytdlp.createStream(videoId, MAX_RETRIES));
     }
-}
-
-function downloadAudio(videoId: string, path: string): Promise<string> {
-    // return current download or create new promise to resolve downloaded audio
-    let promise = DOWNLOADS.get(videoId);
-    if (promise == null) {
-        DOWNLOADS.set(videoId, promise = new Promise<string>((resolve, reject) => {
-            // arguments
-            const args = [
-                '-f', 'bestaudio',
-                '-o', path,
-                '--quiet',
-                videoId.startsWith('-') ? videoURL(videoId, true) : videoId
-            ];
-
-            // spawn yt-dlp
-            const proc = spawn('yt-dlp', args);
-
-            // log error messages
-            proc.stderr.pipe(process.stderr);
-
-            proc.once('error', (error) => {
-                reject(error);
-            })
-
-            // resolve or reject on closes
-            proc.once('close', code => {
-                DOWNLOADS.delete(videoId);
-                if (code === 0) {
-                    if (existsSync(path)) {
-                        resolve(path);
-                    } else {
-                        reject('yt-dlp exited without downloading anything');
-                    }
-                } else {
-                    if (existsSync(path)) {
-                        rmSync(path);
-                    }
-                    reject(`yt-dlp exited with code ${code}.`);
-                }
-            });
-        }));
-    }
-    return promise;
-}
-
-async function getYtDlpStream(videoId: string, maxRetries: number = MAX_RETRIES): Promise<Readable> {
-    for (let n = 0; n < maxRetries - 1; n++) {
-        try {
-            return await _getYtDlpStream(videoId);
-        } catch (error) {
-            if (Error.isError(error) && error.message.includes('Sign in to confirm your age')) {
-                throw new Error('The video is age-restricted.', { cause: error });
-            }
-        }
-    }
-    return await _getYtDlpStream(videoId);
-}
-
-function _getYtDlpStream(videoId: string): Promise<Readable> {
-    const proc = spawn('yt-dlp', [
-        '-f', 'bestaudio',
-        '-o', '-',
-        '--quiet',
-        videoId.startsWith('-') ? videoURL(videoId, true) : videoId
-    ]);
-    const { stdout, stderr } = proc;
-
-    return new Promise((resolve, reject) => {
-        let resolved = false;
-        let errorMessage: string | null = null;
-
-        stdout.once('data', (chunk: unknown) => {
-            resolved = true;
-
-            stdout.pause();
-            stdout.unshift(chunk);
-
-            resolve(stdout);
-        });
-
-        stderr.once('data', (chunk: unknown) => {
-            errorMessage = (errorMessage ?? '') + String(chunk);
-        });
-
-        proc.once('error', (error) => {
-            if (!resolved) {
-                reject(error);
-            } else {
-                stdout.destroy(error);
-            }
-        });
-
-        proc.once('close', (code) => {
-            const message = errorMessage ?? `yt-dlp exited with code ${code}`;
-            if (!resolved) {
-                reject(new Error(message));
-            } else if (code !== 0) {
-                stdout.destroy(
-                    new Error(message)
-                );
-            }
-        });
-    });
 }
