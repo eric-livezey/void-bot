@@ -1,7 +1,7 @@
 import { getVoiceConnection } from '@discordjs/voice';
 import { channelMention, InteractionContextType, PermissionsBitField, SlashCommandBuilder } from 'discord.js';
 import { MessageCommand, SlashCommand } from '../command.js';
-import { CommandContext } from '../commandContext.js';
+import type { CommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 
 export default async function execute(ctx: CommandContext<true>): Promise<void> {

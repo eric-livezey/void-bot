@@ -1,7 +1,8 @@
-import { type _Nullable, CategoryChannel, type CategoryChannelResolvable, ChannelType, Client, Events, Guild, PermissionsBitField, type Snowflake, VoiceChannel } from 'discord.js';
+import { type _Nullable, type CategoryChannel, type CategoryChannelResolvable, ChannelType, type Client, Events, type Guild, PermissionsBitField, type Snowflake, type VoiceChannel } from 'discord.js';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import Innertube, { YT, YTNodes } from 'youtubei.js';
+import type Innertube from 'youtubei.js';
+import type { YT, YTNodes } from 'youtubei.js';
 import { getInnertubeInstance } from './innertube.js';
 import { normalizeOptions } from './utils.js';
 

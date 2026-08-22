@@ -1,7 +1,7 @@
 import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
 import { getInnertubeInstance } from '../../innertube.js';
 import { MessageCommand, SlashCommand } from '../command.js';
-import { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
+import type { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 import { connectToSpeak, playPlaylist } from './play.js';
 

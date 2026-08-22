@@ -1,10 +1,10 @@
-import { Attachment, channelMention, EmbedBuilder, InteractionContextType, MessageFlags, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
-import { Utils, YT, YTNodes } from 'youtubei.js';
+import { type Attachment, channelMention, EmbedBuilder, InteractionContextType, MessageFlags, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
+import { Utils, type YT, YTNodes } from 'youtubei.js';
 import { getInnertubeInstance } from '../../innertube.js';
 import { Track } from '../../player.js';
 import { bestThumbnail, channelURL, createVoiceConnection, extractPlaylistId, extractVideoId, isDiscordAttachmentURL, normalizeURL, playlistURL, resolveURL } from '../../utils.js';
 import { MessageCommand, SlashCommand } from '../command.js';
-import { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
+import type { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 import resume from './resume.js';
 

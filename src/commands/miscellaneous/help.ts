@@ -1,6 +1,6 @@
 import { EmbedBuilder, SlashCommandBuilder } from 'discord.js';
 import { MessageCommand, SlashCommand } from '../command.js';
-import { CommandContext } from '../commandContext.js';
+import type { CommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 
 const embed = new EmbedBuilder().addFields(

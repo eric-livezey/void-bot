@@ -1,12 +1,11 @@
 import { ChannelType, type MessageCreateOptions, MessageFlags, PermissionsBitField, type SendableChannels, SlashCommandAttachmentOption, SlashCommandBuilder, SlashCommandChannelOption, SlashCommandStringOption } from 'discord.js';
-import { type ConfigOptions, normalizeOptions, resolveChannelId } from '../../utils.js';
+import { config } from '../../config.js';
+import { normalizeOptions, resolveChannelId } from '../../utils.js';
 import { MessageCommand, SlashCommand } from '../command.js';
-import { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
-
-import config from '../../../config.json' with { type: 'json' };
+import type { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 
-const { guildId: GUILD_ID } = config as ConfigOptions;
+const { guildId: GUILD_ID } = config;
 const CHANNEL_TYPES = [
     ChannelType.GuildText,
     ChannelType.GuildVoice,

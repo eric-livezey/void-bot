@@ -3,7 +3,7 @@ import { Utils, YTNodes } from 'youtubei.js';
 import { getInnertubeInstance } from '../../innertube.js';
 import { Track } from '../../player.js';
 import { MessageCommand, SlashCommand } from '../command.js';
-import { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
+import type { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 import { connectToSpeak, playTrack } from './play.js';
 

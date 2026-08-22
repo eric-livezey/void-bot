@@ -1,5 +1,5 @@
 import { Client as BaseClient, type ClientOptions } from 'discord.js';
-import type { ConfigOptions } from '../utils.js';
+import { config } from '../config.js';
 import { type CommandManagers, MessageCommandManager, SlashCommandManager } from './commandManager.js';
 import { registerDmCommand } from './messaging/dm.js';
 import { registerSendCommand } from './messaging/send.js';
@@ -30,9 +30,7 @@ import { registerVolumeCommand } from './playback/volume.js';
 import { registerSubscriberCountCommand } from './tracking/subscribercount.js';
 import { registerViewCountCommand } from './tracking/viewcount.js';
 
-import config from '../../config.json' with { type: 'json' };
-
-const { prefix: PREFIX } = config as ConfigOptions;
+const { prefix: PREFIX } = config;
 
 export const commands = { slashCommands: new SlashCommandManager(), messageCommands: PREFIX != null ? new MessageCommandManager(PREFIX) : null } satisfies CommandManagers;
 

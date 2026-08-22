@@ -1,8 +1,7 @@
-import config from '../../config.json' with { type: 'json' };
 import { commands } from '../commands/index.js';
-import type { ConfigOptions } from '../utils.js';
+import { config } from '../config.js';
 
-const { token, clientId } = config as ConfigOptions;
+const { token, clientId } = config;
 const isTokenSet = token != null;
 const isClientIdSet = clientId != null;
 

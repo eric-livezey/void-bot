@@ -1,12 +1,11 @@
-import { AllowedMentionsTypes, Events, IntentsBitField, Message, type MessageCreateOptions, MessageFlags, type MessageMentionOptions, MessageMentions, MessagePayload, Partials, Poll, type PollData, userMention } from 'discord.js';
+import { AllowedMentionsTypes, Events, IntentsBitField, type Message, type MessageCreateOptions, MessageFlags, type MessageMentionOptions, type MessageMentions, MessagePayload, Partials, type Poll, type PollData, userMention } from 'discord.js';
 import { Client, commands } from './commands/index.js';
 import { generateGuildsListMessage } from './commands/miscellaneous/guilds.js';
 import { generateQueueMessage } from './commands/playback/queue.js';
+import { config } from './config.js';
 import { Player } from './player.js';
 import { TrackerManager } from './tracker.js';
-import { type ConfigOptions, createVoiceConnection, normalizeOptions } from './utils.js';
-
-import config from '../config.json' with { type: 'json' };
+import { createVoiceConnection, normalizeOptions } from './utils.js';
 
 /**
  * Client gateway intents.
@@ -66,7 +65,7 @@ const log = console.log;
 console.log = function (...data) { log(`[${new Date().toLocaleString()}]`, ...data) };
 
 // config
-const { token, dmChannelId } = config as ConfigOptions;
+const { token, dmChannelId } = config;
 const isTokenSet = token != null;
 const isDmChannelIdSet = dmChannelId != null;
 

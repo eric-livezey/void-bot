@@ -1,7 +1,7 @@
 import { channelMention, ChannelType, InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandChannelOption, type VoiceBasedChannel } from 'discord.js';
 import { createVoiceConnection, resolveChannelId } from '../../utils.js';
 import { MessageCommand, SlashCommand } from '../command.js';
-import { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
+import type { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 
 export default async function execute(ctx: CommandContext<true>, channel?: VoiceBasedChannel) {

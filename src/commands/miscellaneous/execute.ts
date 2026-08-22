@@ -1,7 +1,7 @@
 import { MessageFlags, type MessagePayloadOption } from 'discord.js';
 import { Script, constants, type Context } from 'node:vm';
 import { MessageCommand } from '../command.js';
-import { CommandContext, MessageCommandContext } from '../commandContext.js';
+import type { CommandContext, MessageCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 
 export default async function execute(ctx: CommandContext, code: string, context: Context = {}): Promise<void> {

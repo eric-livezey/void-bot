@@ -1,5 +1,5 @@
 import { InteractionContextType, MessageFlags, PermissionsBitField, SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
-import { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
+import type { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
 import { resolveVideoId } from '../../utils.js';
 import { MessageCommand, SlashCommand } from '../command.js';
 import type { CommandManagers } from '../commandManager.js';

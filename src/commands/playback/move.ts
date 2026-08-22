@@ -1,6 +1,6 @@
 import { InteractionContextType, MessageFlags, PermissionsBitField, SlashCommandBuilder, SlashCommandIntegerOption } from 'discord.js';
 import { MessageCommand, SlashCommand } from '../command.js';
-import { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
+import type { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 import { canManagePlayback } from './play.js';
 

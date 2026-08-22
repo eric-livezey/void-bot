@@ -1,7 +1,6 @@
-import { AutocompleteInteraction, ChatInputCommandInteraction, Collection, Message, MessageFlags, REST, Routes, type RESTPostAPIChatInputApplicationCommandsJSONBody, type RESTPutAPIApplicationCommandsResult, type RESTPutAPIApplicationGuildCommandsResult, type Snowflake } from "discord.js";
-import type { SlashCommand } from "./command.js";
+import { Collection, MessageFlags, REST, Routes, type AutocompleteInteraction, type ChatInputCommandInteraction, type Message, type RESTPostAPIChatInputApplicationCommandsJSONBody, type RESTPutAPIApplicationCommandsResult, type RESTPutAPIApplicationGuildCommandsResult, type Snowflake } from "discord.js";
+import type { MessageCommand, SlashCommand } from "./command.js";
 import { MessageCommandContext, SlashCommandContext, type GuildCacheType } from "./commandContext.js";
-import type { MessageCommand } from "./command.js";
 
 /**
  * A manager for commands.

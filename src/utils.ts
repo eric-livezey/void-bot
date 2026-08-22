@@ -1,21 +1,11 @@
-import { joinVoiceChannel, VoiceConnection } from '@discordjs/voice';
+import { joinVoiceChannel, type VoiceConnection } from '@discordjs/voice';
 import type { Snowflake, VoiceBasedChannel } from 'discord.js';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { config } from './config.js';
 import { getInnertubeInstance } from './innertube.js';
 
-import config from '../config.json' with { type: 'json' };
-
-const { ownerId: OWNER_ID } = config as ConfigOptions;
-
-export interface ConfigOptions {
-    token?: string;
-    clientId?: string;
-    guildId?: string;
-    ownerId?: string;
-    dmChannelId?: string;
-    prefix?: string;
-}
+const { ownerId: OWNER_ID } = config;
 export class Duration {
     private milliseconds: number;
 

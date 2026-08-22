@@ -1,7 +1,7 @@
 import { SlashCommandBuilder, SlashCommandStringOption } from 'discord.js';
 import { evaluate } from 'mathjs';
 import { MessageCommand, SlashCommand } from '../command.js';
-import { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
+import type { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 
 export default async function execute(ctx: CommandContext, expression: string): Promise<void> {

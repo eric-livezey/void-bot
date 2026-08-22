@@ -1,10 +1,9 @@
-import { ActionRowBuilder, type APIMessageTopLevelComponent, AutocompleteInteraction, ButtonBuilder, ButtonStyle, Collection, ContainerBuilder, Guild, type JSONEncodable, type MessageActionRowComponentBuilder, MessageFlags, type MessagePayloadOption, PermissionsBitField, type RESTPostAPIChannelInviteJSONBody, type RESTPostAPIChannelInviteResult, RouteBases, Routes, SlashCommandBuilder, SlashCommandIntegerOption, SlashCommandStringOption, SlashCommandSubcommandBuilder, SlashCommandUserOption, type Snowflake, TextDisplayBuilder } from 'discord.js';
-import { type ConfigOptions, normalizeOptions } from '../../utils.js';
+import { ActionRowBuilder, type APIMessageTopLevelComponent, type AutocompleteInteraction, ButtonBuilder, ButtonStyle, type Collection, ContainerBuilder, type Guild, type JSONEncodable, type MessageActionRowComponentBuilder, MessageFlags, type MessagePayloadOption, PermissionsBitField, type RESTPostAPIChannelInviteJSONBody, type RESTPostAPIChannelInviteResult, RouteBases, Routes, SlashCommandBuilder, SlashCommandIntegerOption, SlashCommandStringOption, SlashCommandSubcommandBuilder, SlashCommandUserOption, type Snowflake, TextDisplayBuilder } from 'discord.js';
+import { config } from '../../config.js';
+import { normalizeOptions } from '../../utils.js';
 import { MessageCommand, SlashCommand } from '../command.js';
-import { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
+import type { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
-
-import config from '../../../config.json' with { type: 'json' };
 
 export interface GuildsInviteCommandOptions {
     guildId: Snowflake,
@@ -13,7 +12,7 @@ export interface GuildsInviteCommandOptions {
     userIds?: Snowflake[] | undefined
 }
 
-const { guildId: GUILD_ID } = config as ConfigOptions;
+const { guildId: GUILD_ID } = config;
 const MAX_PAGE_SIZE = 25;
 
 export function generateGuildsListMessage(guilds: Collection<Snowflake, Guild>, page: number = 0): MessagePayloadOption {

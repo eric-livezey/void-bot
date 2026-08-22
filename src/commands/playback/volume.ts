@@ -1,6 +1,6 @@
 import { InteractionContextType, PermissionsBitField, SlashCommandBuilder, SlashCommandNumberOption } from 'discord.js';
 import { MessageCommand, SlashCommand } from '../command.js';
-import { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
+import type { CommandContext, MessageCommandContext, SlashCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 
 export default async function execute(ctx: CommandContext<true>, percentage: number): Promise<void> {

@@ -1,6 +1,6 @@
 import { Attachment, InteractionContextType, PermissionsBitField, SlashCommandAttachmentOption, SlashCommandBuilder } from 'discord.js';
 import { SlashCommand } from '../command.js';
-import { CommandContext, SlashCommandContext } from '../commandContext.js';
+import type { CommandContext, SlashCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 import play from './play.js';
 

@@ -1,4 +1,4 @@
-import { AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, type CreateAudioResourceOptions, getVoiceConnection, PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
+import { type AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, type CreateAudioResourceOptions, getVoiceConnection, type PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 import { ActionRowBuilder, type APIEmbedField, AttachmentBuilder, ButtonBuilder, ButtonStyle, Colors, ContainerBuilder, EmbedBuilder, type MessageActionRowComponentBuilder, MessageFlags, type MessagePayloadOption, type RestOrArray, SeparatorBuilder, type Snowflake, TextDisplayBuilder, time, TimestampStyles } from 'discord.js';
 import { parseWebStream } from 'music-metadata';
 import assert from 'node:assert';
@@ -6,9 +6,9 @@ import { EventEmitter } from 'node:events';
 import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { ReadableStream } from 'node:stream/web';
+import type { ReadableStream } from 'node:stream/web';
 import sharp from 'sharp';
-import { YT, YTNodes } from 'youtubei.js';
+import { type YT, YTNodes } from 'youtubei.js';
 import { getInnertubeInstance } from './innertube.js';
 import { channelURL, Duration, formatListItem, generateVideoThumbnailURL, getCachedThumbnailURL, normalizeOptions, normalizeURL, type Options, parseYTDuration, videoURL } from './utils.js';
 import * as ytdlp from './ytdlp.js';

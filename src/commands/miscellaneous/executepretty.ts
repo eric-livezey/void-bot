@@ -1,5 +1,5 @@
 import { MessageCommand } from '../command.js';
-import { CommandContext, MessageCommandContext } from '../commandContext.js';
+import type { CommandContext, MessageCommandContext } from '../commandContext.js';
 import type { CommandManagers } from '../commandManager.js';
 import exec from './execute.js';
 
