@@ -397,7 +397,7 @@ export class Queue implements Iterable<Track<unknown>> {
     public values(): ArrayIterator<Track<unknown>> {
         return this.list.values();
     }
-    public push(value: Track): number {
+    public push(value: Track<unknown>): number {
         const length = this.list.push(value);
         if (this.list.length === 1) {
             value.prepare();
@@ -633,7 +633,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
      *
      * @param track A track.
      */
-    public async enqueue(track: Track): Promise<number> {
+    public async enqueue(track: Track<unknown>): Promise<number> {
         if (!this.isPlaying()) {
             return this.play(track).then(() => 0).catch(() => -1);
         }
