@@ -1,8 +1,11 @@
-import eslint from '@eslint/js';
+// @ts-check
+
+import js from '@eslint/js';
+import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
-export default tseslint.config(
-    eslint.configs.recommended,
-    tseslint.configs.recommended,
-    { ignores: ['build'] },
-);
+export default defineConfig({
+    files: ['**/*.{js,ts}'],
+    extends: [js.configs.recommended, tseslint.configs.recommended],
+    ignores: ['build/**/*']
+});

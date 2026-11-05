@@ -301,7 +301,7 @@ class VideoTracker extends ResourceTracker {
         const { basic_info: { title, view_count: viewCount } } = await innertube.getBasicInfo(this.resourceId);
         return normalizeOptions({ title, detail: viewCount != null ? `${formatViewCount(viewCount)} views` : undefined });
     }
-    public static fromJSON(client: Client, json: JSONTracker) {
+    public static override fromJSON(client: Client, json: JSONTracker) {
         return new this(client, json.guildId, json.resourceId, json.categoryChannelId, json.detailChannelId);
     }
 }
@@ -320,7 +320,7 @@ class ChannelTracker extends ResourceTracker {
         const channel = await innertube.getChannel(this.resourceId) as YT.Channel & { header?: YTNodes.PageHeader };
         return normalizeOptions({ title: channel.metadata.title, detail: channel.header?.content?.metadata?.metadata_rows[1]?.metadata_parts?.[0]?.text?.toString() });
     }
-    public static fromJSON(client: Client, json: JSONTracker) {
+    public static override fromJSON(client: Client, json: JSONTracker) {
         return new this(client, json.guildId, json.resourceId, json.categoryChannelId, json.detailChannelId);
     }
 }

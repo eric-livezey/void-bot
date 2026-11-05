@@ -1,7 +1,6 @@
 import { type AudioPlayer, AudioPlayerStatus, AudioResource, createAudioPlayer, createAudioResource, type CreateAudioResourceOptions, getVoiceConnection, type PlayerSubscription, VoiceConnection, VoiceConnectionStatus } from '@discordjs/voice';
 import { ActionRowBuilder, type APIEmbedField, AttachmentBuilder, ButtonBuilder, ButtonStyle, Colors, ContainerBuilder, EmbedBuilder, type MessageActionRowComponentBuilder, MessageFlags, type MessagePayloadOption, type RestOrArray, SeparatorBuilder, type Snowflake, TextDisplayBuilder, time, TimestampStyles } from 'discord.js';
 import { parseWebStream } from 'music-metadata';
-import assert from 'node:assert';
 import { EventEmitter } from 'node:events';
 import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
@@ -166,7 +165,9 @@ export class Track<M = null> {
         }
         const videoDetails = info.basic_info;
         const videoId = videoDetails.id;
-        assert(videoId != null, 'Failed to resolve video ID');
+        if (videoId == null) {
+            throw new Error('Failed to resolve video ID');
+        }
         const prepare = _createYtDlpPrepare(videoId);
         const duration = videoDetails.duration;
         const channel = videoDetails.channel;
@@ -225,6 +226,9 @@ export class Track<M = null> {
     }
     public static fromLockupView(item: YTNodes.LockupView): Track {
         const videoId = item.content_id;
+        if (videoId == null) {
+            throw new Error('Failed to resolve video ID');
+        }
         const prepare = _createYtDlpPrepare(videoId);
         let duration;
         const contentImage = item.content_image;
@@ -248,7 +252,7 @@ export class Track<M = null> {
             duration,
             author
         } satisfies TrackOptions;
-        return new Track(prepare, item.metadata?.title.toString() ?? 'Unknown', details);
+        return new Track(prepare, item.metadata?.title?.toString() ?? 'Unknown', details);
     }
     /**
      * Creates a track from an album item.
@@ -259,7 +263,9 @@ export class Track<M = null> {
      */
     public static fromAlbumItem(item: YTNodes.MusicResponsiveListItem): Track {
         const videoId = item.id;
-        assert(videoId != null, 'Failed to resolve video ID');
+        if (videoId == null) {
+            throw new Error('Failed to resolve video ID');
+        }
         const prepare = _createYtDlpPrepare(videoId);
         const seconds = item.duration?.seconds;
         const artist = item.artists?.[0];
