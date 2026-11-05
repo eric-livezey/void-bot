@@ -43,14 +43,15 @@ const messageCommand = new MessageCommand<true>({
             return;
         }
 
-        const [input] = ctx.getArguments(1);
+        let [input] = ctx.getArguments(1);
 
         if (!input) {
             await ctx.reply('`percentage` must be provided.');
             return;
         }
 
-        if (!/^\d+(\.\d+)?$/.test(input)) {
+        input = /^(\d+(?:\.\d+)?)%?$/.exec(input)?.[1];
+        if (!input) {
             await ctx.reply('`percentage` must be a number.');
             return;
         }

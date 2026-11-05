@@ -183,6 +183,8 @@ export class MessageCommandManager extends CommandManager<AnyMessageCommand> {
      * Prefix which identifies message commands.
      */
     public readonly prefix: string;
+    // a compiled regular expression which matches a potential command
+    private readonly pattern: RegExp;
     // list of unique commands
     private readonly commandsList: (AnyMessageCommand)[];
 
@@ -192,6 +194,7 @@ export class MessageCommandManager extends CommandManager<AnyMessageCommand> {
     constructor(prefix: string) {
         super();
         this.prefix = prefix;
+        this.pattern = RegExp(`^${RegExp.escape(prefix)}\\p{L}`, 'u');
         this.commandsList = [];
     }
 
@@ -201,7 +204,7 @@ export class MessageCommandManager extends CommandManager<AnyMessageCommand> {
      * @param message A discord message.
      */
     public async handleMessage<InGuild extends boolean>(message: Message<InGuild>): Promise<void> {
-        if (!message.content.startsWith(this.prefix)) {
+        if (!this.pattern.test(message.content)) {
             return;
         }
         const ctx = new MessageCommandContext(message, this.prefix);
@@ -247,14 +250,14 @@ export class MessageCommandManager extends CommandManager<AnyMessageCommand> {
     /**
      * Registers a command with the manager.
      * 
-     * @param command A slash command.
+     * @param command A message command.
      * @param options Installation options.
      */
     public register(command: AnyMessageCommand): void {
         this.commandsList.push(command);
         for (const alias of command.aliases) {
             this.commands.set(
-                alias,
+                alias.toLowerCase(),
                 command
             );
         }

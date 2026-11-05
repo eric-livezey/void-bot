@@ -19,7 +19,7 @@ export function download(videoId: string, path: string, maxRetries = 0): Promise
         _IN_PROGRESS_DOWNLOADS.set(
             videoId,
             promise = new Promise<void>((resolve, reject) => {
-                function handleError(n: number, error: Error) {
+                function handleError(n: number, error: Error): void {
                     if (existsSync(path)) {
                         rmSync(path);
                     }
@@ -34,7 +34,7 @@ export function download(videoId: string, path: string, maxRetries = 0): Promise
                         reject(error);
                     }
                 }
-                function attempt(n: number) {
+                function attempt(n: number): void {
                     _createStream(videoId, path)
                         .then((stream) => {
                             let isDone = false;
@@ -81,7 +81,7 @@ export function download(videoId: string, path: string, maxRetries = 0): Promise
 }
 
 /**
- * Creates a readable stream which contains the audio of a YouTube video1.
+ * Creates a readable stream which contains the audio of a YouTube video.
  * 
  * @param videoId A video ID
  * @param maxRetries Maximum number of times to retry on applicable failures

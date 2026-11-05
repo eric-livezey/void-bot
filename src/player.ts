@@ -788,8 +788,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
             const track = this.queue.shift();
             if (track) {
                 await this.play(track).catch(() => { this.skip() });
-            }
-            else {
+            } else {
                 this.stop();
             }
         }
@@ -803,8 +802,7 @@ export class Player extends EventEmitter<{ error: [Error]; }> {
         let resource;
         try {
             this.nowPlayingResource = resource = await track.resolve();
-        }
-        catch (e) {
+        } catch (e) {
             this.nowPlayingTrack = null;
             console.error(e);
             throw e;
